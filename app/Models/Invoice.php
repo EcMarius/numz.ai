@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,6 +15,7 @@ class Invoice extends Model
         'status',
         'subtotal',
         'tax',
+        'discount',
         'total',
         'currency',
         'due_date',
@@ -25,10 +27,11 @@ class Invoice extends Model
 
     protected $casts = [
         'due_date' => 'date',
-        'paid_date' => 'date',
+        'paid_date' => 'datetime',
         'subtotal' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'discount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -82,11 +85,13 @@ class Invoice extends Model
         ]);
     }
 
-    public function addItem(string $description, float $amount, int $quantity = 1, string $itemType = null, int $itemId = null): InvoiceItem
+    public function addItem(string $description, float $amount, int $quantity = 1, string $itemType = null, int $itemId = null, string $details = null): InvoiceItem
     {
         return $this->items()->create([
             'description' => $description,
-            'amount' => $amount,
+            'details' => $details,
+            'unit_price' => $amount,
+            'amount' => $amount * $quantity,
             'quantity' => $quantity,
             'total' => $amount * $quantity,
             'item_type' => $itemType,
@@ -97,14 +102,57 @@ class Invoice extends Model
     public function calculateTotals(): void
     {
         $subtotal = $this->items()->sum('total');
+        $discount = $this->discount ?? 0;
         $taxRate = config('numz.tax_rate', 0); // Percentage
-        $tax = $subtotal * ($taxRate / 100);
-        $total = $subtotal + $tax;
+        $tax = ($subtotal - $discount) * ($taxRate / 100);
+        $total = $subtotal - $discount + $tax;
 
         $this->update([
             'subtotal' => $subtotal,
             'tax' => $tax,
             'total' => $total,
         ]);
+    }
+
+    /**
+     * Generate PDF for this invoice
+     *
+     * @return \Barryvdh\DomPDF\PDF
+     */
+    public function generatePdf()
+    {
+        return Pdf::loadView('pdf.invoice', [
+            'invoice' => $this->load(['items', 'user']),
+        ])
+        ->setPaper('a4', 'portrait')
+        ->setOption('defaultFont', 'DejaVu Sans');
+    }
+
+    /**
+     * Download invoice as PDF
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function downloadPdf()
+    {
+        return $this->generatePdf()->download("invoice-{$this->invoice_number}.pdf");
+    }
+
+    /**
+     * Stream invoice PDF in browser
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function streamPdf()
+    {
+        return $this->generatePdf()->stream("invoice-{$this->invoice_number}.pdf");
+    }
+
+    /**
+     * Get paid_at attribute (alias for paid_date for template compatibility)
+     */
+    public function getPaidAtAttribute()
+    {
+        return $this->paid_date;
     }
 }

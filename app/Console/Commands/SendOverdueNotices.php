@@ -29,7 +29,7 @@ class SendOverdueNotices extends Command
             // Send reminders at specific intervals
             if (in_array($daysOverdue, [1, 3, 7, 14, 30])) {
                 try {
-                    // TODO: Create InvoiceOverdue mailable
+                    Mail::to($invoice->user->email)->send(new InvoiceOverdue($invoice, $daysOverdue));
                     $this->info("Sent overdue notice for invoice #{$invoice->invoice_number} ({$daysOverdue} days overdue)");
                     $count++;
                 } catch (\Exception $e) {

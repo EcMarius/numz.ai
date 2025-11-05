@@ -203,9 +203,19 @@ class ClientPortalController extends Controller
             ->with(['items', 'user'])
             ->findOrFail($id);
 
-        // TODO: Generate PDF
-        // For now, return view that can be printed
-        return view('client.invoices.pdf', compact('invoice'));
+        return $invoice->downloadPdf();
+    }
+
+    /**
+     * View invoice PDF in browser
+     */
+    public function viewInvoice($id)
+    {
+        $invoice = Invoice::where('user_id', auth()->id())
+            ->with(['items', 'user'])
+            ->findOrFail($id);
+
+        return $invoice->streamPdf();
     }
 
     /**

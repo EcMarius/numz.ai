@@ -22,6 +22,7 @@ use App\Http\Controllers\Client\CheckoutController;
 use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\DomainController;
 use App\Http\Controllers\Client\ClientPortalController;
+use App\Http\Controllers\Client\SupportTicketController;
 
 // Client Area - Public Routes
 Route::prefix('products')->name('client.products.')->group(function () {
@@ -82,8 +83,19 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Invoices
         Route::get('/invoices', [ClientPortalController::class, 'invoices'])->name('invoices');
         Route::get('/invoices/{id}', [ClientPortalController::class, 'showInvoice'])->name('invoices.show');
+        Route::get('/invoices/{id}/pdf', [ClientPortalController::class, 'viewInvoice'])->name('invoices.pdf');
         Route::get('/invoices/{id}/download', [ClientPortalController::class, 'downloadInvoice'])->name('invoices.download');
         Route::post('/invoices/{id}/pay', [ClientPortalController::class, 'payInvoice'])->name('invoices.pay');
+
+        // Support Tickets
+        Route::get('/tickets', [SupportTicketController::class, 'index'])->name('tickets.index');
+        Route::get('/tickets/create', [SupportTicketController::class, 'create'])->name('tickets.create');
+        Route::post('/tickets', [SupportTicketController::class, 'store'])->name('tickets.store');
+        Route::get('/tickets/{id}', [SupportTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/tickets/{id}/reply', [SupportTicketController::class, 'reply'])->name('tickets.reply');
+        Route::post('/tickets/{id}/close', [SupportTicketController::class, 'close'])->name('tickets.close');
+        Route::post('/tickets/{id}/reopen', [SupportTicketController::class, 'reopen'])->name('tickets.reopen');
+        Route::get('/tickets/{ticketId}/attachments/{attachmentId}/download', [SupportTicketController::class, 'downloadAttachment'])->name('tickets.download-attachment');
     });
 });
 
