@@ -6,9 +6,13 @@ use App\Models\ModuleSetting;
 use App\Numz\Modules\PaymentGateways\StripeGateway;
 use App\Numz\Modules\PaymentGateways\PayPalGateway;
 use App\Numz\Modules\PaymentGateways\PaysafecardGateway;
+use App\Numz\Modules\PaymentGateways\CoinbaseGateway;
+use App\Numz\Modules\PaymentGateways\TwoCheckoutGateway;
+use App\Numz\Modules\PaymentGateways\RazorpayGateway;
 use App\Numz\Modules\Registrars\DomainNameAPIRegistrar;
 use App\Numz\Modules\Provisioning\OneProviderProvisioning;
 use App\Numz\Modules\Integrations\TawkToIntegration;
+use App\Numz\Modules\Integrations\SocialAuthModule;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -17,18 +21,19 @@ use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use BackedEnum;
 
 class ModuleSettings extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-
-    protected static string $view = 'filament.pages.module-settings';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     protected static ?string $navigationLabel = 'Module Settings';
 
     protected static ?string $title = 'Module Settings';
 
     protected static ?int $navigationSort = 99;
+
+    protected static string $view = 'filament.pages.module-settings';
 
     public static function getNavigationGroup(): ?string
     {
@@ -46,6 +51,9 @@ class ModuleSettings extends Page
                     'stripe' => new StripeGateway(),
                     'paypal' => new PayPalGateway(),
                     'paysafecard' => new PaysafecardGateway(),
+                    'coinbase' => new CoinbaseGateway(),
+                    'twocheckout' => new TwoCheckoutGateway(),
+                    'razorpay' => new RazorpayGateway(),
                 ],
             ],
             'registrar' => [
@@ -64,6 +72,7 @@ class ModuleSettings extends Page
                 'label' => 'Integrations',
                 'modules' => [
                     'tawkto' => new TawkToIntegration(),
+                    'socialauth' => new SocialAuthModule(),
                 ],
             ],
         ];

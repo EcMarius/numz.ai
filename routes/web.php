@@ -15,6 +15,7 @@ use Wave\Facades\Wave;
 use App\Http\Controllers\PluginUploadController;
 use App\Http\Controllers\BlogAIController;
 use App\Http\Controllers\InstallerController;
+use App\Http\Controllers\SocialAuthController;
 
 // Installer Routes (must be before any middleware)
 Route::prefix('install')->name('installer.')->group(function () {
@@ -26,6 +27,17 @@ Route::prefix('install')->name('installer.')->group(function () {
     Route::post('/database/test', [InstallerController::class, 'testDatabase'])->name('database.test');
     Route::get('/admin', [InstallerController::class, 'admin'])->name('admin');
     Route::post('/install', [InstallerController::class, 'install'])->name('install');
+});
+
+// Social Authentication Routes
+Route::prefix('auth/social')->name('social.')->group(function () {
+    Route::get('{provider}', [SocialAuthController::class, 'redirect'])->name('redirect');
+    Route::get('{provider}/callback', [SocialAuthController::class, 'callback'])->name('callback');
+});
+
+// Unlink social account (authenticated)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/settings/social/{provider}/unlink', [SocialAuthController::class, 'unlink'])->name('social.unlink');
 });
 
 // NOTE: Email verification route is registered in AppServiceProvider::boot()
