@@ -16,6 +16,76 @@ use App\Http\Controllers\PluginUploadController;
 use App\Http\Controllers\BlogAIController;
 use App\Http\Controllers\InstallerController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\Client\ProductCatalogController;
+use App\Http\Controllers\Client\CartController;
+use App\Http\Controllers\Client\CheckoutController;
+use App\Http\Controllers\Client\PaymentController;
+use App\Http\Controllers\Client\DomainController;
+use App\Http\Controllers\Client\ClientPortalController;
+
+// Client Area - Public Routes
+Route::prefix('products')->name('client.products.')->group(function () {
+    Route::get('/', [ProductCatalogController::class, 'index'])->name('index');
+    Route::get('/{slug}', [ProductCatalogController::class, 'show'])->name('show');
+});
+
+Route::prefix('domains')->name('client.domains.')->group(function () {
+    Route::get('/search', [DomainController::class, 'index'])->name('search');
+    Route::post('/check', [DomainController::class, 'checkAvailability'])->name('check');
+    Route::post('/bulk-search', [DomainController::class, 'bulkSearch'])->name('bulk-search');
+});
+
+Route::prefix('cart')->name('client.cart.')->group(function () {
+    Route::get('/', [CartController::class, 'index'])->name('index');
+    Route::post('/add-product/{slug}', [ProductCatalogController::class, 'addToCart'])->name('add-product');
+    Route::post('/add-domain', [DomainController::class, 'addToCart'])->name('add-domain');
+    Route::delete('/remove/{itemId}', [CartController::class, 'remove'])->name('remove');
+    Route::put('/update/{itemId}', [CartController::class, 'update'])->name('update');
+    Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
+    Route::get('/count', [CartController::class, 'count'])->name('count');
+});
+
+// Client Area - Authenticated Routes
+Route::middleware(['web', 'auth'])->group(function () {
+    // Checkout
+    Route::prefix('checkout')->name('client.checkout.')->group(function () {
+        Route::get('/', [CheckoutController::class, 'index'])->name('index');
+        Route::post('/process', [CheckoutController::class, 'process'])->name('process');
+    });
+
+    // Payment Processing
+    Route::prefix('payment')->name('client.payment.')->group(function () {
+        Route::get('/{gateway}/{invoice}', [PaymentController::class, 'show'])->name('show');
+        Route::post('/stripe', [PaymentController::class, 'processStripe'])->name('stripe');
+        Route::post('/paypal', [PaymentController::class, 'processPayPal'])->name('paypal');
+        Route::get('/paypal/return/{invoice}', [PaymentController::class, 'paypalReturn'])->name('paypal.return');
+        Route::post('/coinbase', [PaymentController::class, 'processCoinbase'])->name('coinbase');
+        Route::get('/success/{invoice}', [PaymentController::class, 'success'])->name('success');
+        Route::get('/failed', [PaymentController::class, 'failed'])->name('failed');
+    });
+
+    // Client Portal
+    Route::prefix('portal')->name('client.')->group(function () {
+        Route::get('/dashboard', [ClientPortalController::class, 'dashboard'])->name('dashboard');
+
+        // Services
+        Route::get('/services', [ClientPortalController::class, 'services'])->name('services');
+        Route::get('/services/{id}', [ClientPortalController::class, 'showService'])->name('services.show');
+        Route::post('/services/{id}/cancel', [ClientPortalController::class, 'cancelService'])->name('services.cancel');
+
+        // Domains
+        Route::get('/domains', [ClientPortalController::class, 'domains'])->name('domains.index');
+        Route::get('/domains/{id}', [ClientPortalController::class, 'showDomain'])->name('domains.show');
+        Route::put('/domains/{id}/nameservers', [ClientPortalController::class, 'updateNameservers'])->name('domains.nameservers');
+        Route::post('/domains/{id}/toggle-autorenew', [ClientPortalController::class, 'toggleAutoRenew'])->name('domains.toggle-autorenew');
+
+        // Invoices
+        Route::get('/invoices', [ClientPortalController::class, 'invoices'])->name('invoices');
+        Route::get('/invoices/{id}', [ClientPortalController::class, 'showInvoice'])->name('invoices.show');
+        Route::get('/invoices/{id}/download', [ClientPortalController::class, 'downloadInvoice'])->name('invoices.download');
+        Route::post('/invoices/{id}/pay', [ClientPortalController::class, 'payInvoice'])->name('invoices.pay');
+    });
+});
 
 // Installer Routes (must be before any middleware)
 Route::prefix('install')->name('installer.')->group(function () {
