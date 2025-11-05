@@ -141,8 +141,8 @@ Route::middleware(['web', 'auth'])->group(function () {
 
         // Add trial period if user doesn't have a subscription and hasn't used trial
         $user = auth()->user();
-        $trialDays = (int) \Wave\Plugins\EvenLeads\Models\Setting::getValue('trial_days', 7);
-        $defaultTrialPlanId = \Wave\Plugins\EvenLeads\Models\Setting::getValue('trial_plan_id', null);
+        $trialDays = (int) config('wave.trial.days', 7);
+        $defaultTrialPlanId = config('wave.trial.plan_id', null);
 
         \Log::info('Trial check', [
             'trial_days' => $trialDays,
@@ -249,3 +249,51 @@ Route::get('/track/click', [\App\Http\Controllers\GrowthHackingController::class
 
 // Wave routes
 Wave::routes();
+
+// NUMZ.AI Hosting Billing Routes
+Route::middleware(['web', 'auth'])->prefix('numz')->name('numz.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', function() {
+        return view('numz.dashboard');
+    })->name('dashboard');
+
+    // Services
+    Route::get('/services', function() {
+        $services = \App\Models\HostingService::where('user_id', auth()->id())->get();
+        return view('numz.services.index', compact('services'));
+    })->name('services.index');
+
+    // Domains
+    Route::get('/domains', function() {
+        $domains = \App\Models\DomainRegistration::where('user_id', auth()->id())->get();
+        return view('numz.domains.index', compact('domains'));
+    })->name('domains.index');
+
+    // Billing
+    Route::get('/invoices', function() {
+        return view('numz.invoices.index');
+    })->name('invoices.index');
+
+    // Support
+    Route::get('/support', function() {
+        return view('numz.support.index');
+    })->name('support.index');
+});
+
+// WHMCS Compatibility API
+Route::prefix('api/whmcs')->name('whmcs.api.')->group(function () {
+    Route::post('/client/details', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientDetails($request->input('clientid')));
+    });
+
+    Route::post('/client/services', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientServices($request->input('clientid')));
+    });
+
+    Route::post('/client/domains', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientDomains($request->input('clientid')));
+    });
+});
