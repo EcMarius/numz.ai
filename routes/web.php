@@ -23,11 +23,23 @@ use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\DomainController;
 use App\Http\Controllers\Client\ClientPortalController;
 use App\Http\Controllers\Client\SupportTicketController;
+use App\Http\Controllers\Client\KnowledgeBaseController;
+use App\Http\Controllers\WebhookController;
 
 // Client Area - Public Routes
 Route::prefix('products')->name('client.products.')->group(function () {
     Route::get('/', [ProductCatalogController::class, 'index'])->name('index');
     Route::get('/{slug}', [ProductCatalogController::class, 'show'])->name('show');
+});
+
+// Knowledge Base - Public Routes
+Route::prefix('knowledge-base')->name('client.kb.')->group(function () {
+    Route::get('/', [KnowledgeBaseController::class, 'index'])->name('index');
+    Route::get('/category/{slug}', [KnowledgeBaseController::class, 'category'])->name('category');
+    Route::get('/{categorySlug}/{articleSlug}', [KnowledgeBaseController::class, 'article'])->name('article');
+    Route::post('/article/{articleId}/vote', [KnowledgeBaseController::class, 'vote'])->name('article.vote');
+    Route::post('/article/{articleId}/comment', [KnowledgeBaseController::class, 'comment'])->name('article.comment')->middleware('auth');
+    Route::get('/article/{articleId}/attachment/{attachmentId}', [KnowledgeBaseController::class, 'downloadAttachment'])->name('article.attachment');
 });
 
 Route::prefix('domains')->name('client.domains.')->group(function () {
@@ -97,6 +109,16 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/tickets/{id}/reopen', [SupportTicketController::class, 'reopen'])->name('tickets.reopen');
         Route::get('/tickets/{ticketId}/attachments/{attachmentId}/download', [SupportTicketController::class, 'downloadAttachment'])->name('tickets.download-attachment');
     });
+});
+
+// Payment Gateway Webhooks (no auth required, verified by signature)
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('/stripe', [WebhookController::class, 'stripe'])->name('stripe');
+    Route::post('/paypal', [WebhookController::class, 'paypal'])->name('paypal');
+    Route::post('/coinbase', [WebhookController::class, 'coinbase'])->name('coinbase');
+    Route::post('/razorpay', [WebhookController::class, 'razorpay'])->name('razorpay');
+    Route::post('/2checkout', [WebhookController::class, 'twoCheckout'])->name('2checkout');
+    Route::post('/paysafecard', [WebhookController::class, 'paysafecard'])->name('paysafecard');
 });
 
 // Installer Routes (must be before any middleware)

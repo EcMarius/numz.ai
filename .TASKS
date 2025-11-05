@@ -15,7 +15,7 @@ This file contains a comprehensive list of features, improvements, and integrati
 - [x] Invoice listing and PDF download
 - [x] Payment history and receipts
 - [x] Support ticket system integration (complete with models, controllers, emails, routes)
-- [ ] Knowledge base / FAQ system
+- [x] Knowledge base / FAQ system (complete with models, controller, routes, voting, comments)
 - [x] Client profile management
 - [x] Password change functionality
 - [ ] 2FA (Two-Factor Authentication) setup
@@ -35,7 +35,7 @@ This file contains a comprehensive list of features, improvements, and integrati
 - [x] Implement Razorpay checkout SDK
 - [x] Implement 2Checkout hosted page
 - [x] Implement Paysafecard redirect flow
-- [ ] Payment webhook handlers for all gateways
+- [x] Payment webhook handlers for all gateways (Stripe, PayPal, Coinbase, Razorpay, 2Checkout, Paysafecard)
 - [ ] Automated payment reconciliation
 - [ ] Failed payment retry logic
 - [x] Payment receipt email notifications
@@ -51,9 +51,9 @@ This file contains a comprehensive list of features, improvements, and integrati
 - [ ] Exchange rate API integration
 
 ### Automated Provisioning
-- [ ] Implement cPanel/WHM provisioning module (documented in DEVELOPER-GUIDE.md)
-- [ ] Implement Plesk provisioning module
-- [ ] Implement DirectAdmin provisioning module
+- [x] Implement cPanel/WHM provisioning module (complete with all API methods)
+- [x] Implement Plesk provisioning module (complete with XML API integration)
+- [x] Implement DirectAdmin provisioning module (complete with CMD API integration)
 - [x] Complete OneProvider API integration
 - [x] Auto-provisioning on payment success (ProcessAutomatedProvisioning command)
 - [x] Queue system for provisioning jobs
@@ -553,11 +553,11 @@ This file contains a comprehensive list of features, improvements, and integrati
 - [ ] Ticket satisfaction survey
 
 ### Knowledge Base
-- [ ] Article creation and management
-- [ ] Article categories
-- [ ] Article search
-- [ ] Article voting (helpful/not helpful)
-- [ ] Article comments
+- [x] Article creation and management
+- [x] Article categories (with parent/child support)
+- [x] Article search (full-text search)
+- [x] Article voting (helpful/not helpful)
+- [x] Article comments (with moderation)
 - [ ] Article versioning
 - [ ] Multi-language articles
 - [ ] Video tutorials
