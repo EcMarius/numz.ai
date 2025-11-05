@@ -2,15 +2,21 @@
 
 namespace App\Numz\Modules\Integrations;
 
+use App\Models\ModuleSetting;
+
 class TawkToIntegration
 {
     protected $propertyId;
     protected $widgetId;
+    protected $moduleName = 'tawkto';
 
     public function __construct()
     {
-        $this->propertyId = config('numz.integrations.tawkto.property_id');
-        $this->widgetId = config('numz.integrations.tawkto.widget_id');
+        $this->propertyId = ModuleSetting::get('integration', $this->moduleName, 'property_id')
+            ?? config('numz.integrations.tawkto.property_id');
+
+        $this->widgetId = ModuleSetting::get('integration', $this->moduleName, 'widget_id')
+            ?? config('numz.integrations.tawkto.widget_id');
     }
 
     public function getWidgetScript(?array $userData = null): string
@@ -52,5 +58,29 @@ HTML;
     public function isConfigured(): bool
     {
         return !empty($this->propertyId) && !empty($this->widgetId);
+    }
+
+    public function getConfig(): array
+    {
+        return [
+            'name' => 'Tawk.to',
+            'description' => 'Live chat widget from Tawk.to. Engage with customers in real-time.',
+            'settings' => [
+                [
+                    'key' => 'property_id',
+                    'label' => 'Property ID',
+                    'type' => 'text',
+                    'encrypted' => false,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'widget_id',
+                    'label' => 'Widget ID',
+                    'type' => 'text',
+                    'encrypted' => false,
+                    'required' => true,
+                ],
+            ],
+        ];
     }
 }

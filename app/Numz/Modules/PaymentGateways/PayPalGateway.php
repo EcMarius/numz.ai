@@ -101,6 +101,7 @@ class PayPalGateway implements PaymentGatewayInterface
     {
         return [
             'name' => 'PayPal',
+            'description' => 'Accept payments via PayPal. Users can pay with their PayPal account or credit card.',
             'supports_refunds' => true,
             'supports_recurring' => true,
             'currencies' => ['USD', 'EUR', 'GBP'],

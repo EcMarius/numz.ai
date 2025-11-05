@@ -3,16 +3,19 @@
 namespace App\Numz\Modules\Provisioning;
 
 use App\Numz\Contracts\ProvisioningInterface;
+use App\Models\ModuleSetting;
 use Illuminate\Support\Facades\Http;
 
 class OneProviderProvisioning implements ProvisioningInterface
 {
     protected $apiKey;
     protected $baseUrl = 'https://api.oneprovider.com/v1';
+    protected $moduleName = 'oneprovider';
 
     public function __construct()
     {
-        $this->apiKey = config('numz.provisioning.oneprovider.api_key');
+        $this->apiKey = ModuleSetting::get('provisioning', $this->moduleName, 'api_key')
+            ?? config('numz.provisioning.oneprovider.api_key');
     }
 
     protected function makeRequest(string $method, string $endpoint, array $data = [])
@@ -118,5 +121,30 @@ class OneProviderProvisioning implements ProvisioningInterface
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    public function getConfig(): array
+    {
+        return [
+            'name' => 'OneProvider',
+            'description' => 'VPS/Cloud server provisioning via OneProvider. Automatic server deployment and management.',
+            'settings' => [
+                [
+                    'key' => 'api_key',
+                    'label' => 'API Key',
+                    'type' => 'password',
+                    'encrypted' => true,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'default_location',
+                    'label' => 'Default Location',
+                    'type' => 'text',
+                    'encrypted' => false,
+                    'required' => false,
+                    'default' => 'us-east',
+                ],
+            ],
+        ];
     }
 }

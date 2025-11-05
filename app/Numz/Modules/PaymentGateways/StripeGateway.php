@@ -72,6 +72,7 @@ class StripeGateway implements PaymentGatewayInterface
     {
         return [
             'name' => 'Stripe',
+            'description' => 'Accept credit card payments with Stripe. Supports subscriptions and one-time payments.',
             'supports_refunds' => true,
             'supports_recurring' => true,
             'currencies' => ['USD', 'EUR', 'GBP'],

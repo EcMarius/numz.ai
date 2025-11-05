@@ -3,17 +3,23 @@
 namespace App\Numz\Modules\PaymentGateways;
 
 use App\Numz\Contracts\PaymentGatewayInterface;
+use App\Models\ModuleSetting;
 use Illuminate\Support\Facades\Http;
 
 class PaysafecardGateway implements PaymentGatewayInterface
 {
     protected $apiKey;
     protected $baseUrl;
+    protected $moduleName = 'paysafecard';
 
     public function __construct()
     {
-        $this->apiKey = config('numz.gateways.paysafecard.api_key');
-        $this->baseUrl = config('numz.gateways.paysafecard.test_mode')
+        $this->apiKey = ModuleSetting::get('payment_gateway', $this->moduleName, 'api_key')
+            ?? config('numz.gateways.paysafecard.api_key');
+
+        $testMode = ModuleSetting::get('payment_gateway', $this->moduleName, 'test_mode', 'true') === 'true';
+
+        $this->baseUrl = $testMode
             ? 'https://apitest.paysafecard.com/v1'
             : 'https://api.paysafecard.com/v1';
     }
@@ -67,9 +73,27 @@ class PaysafecardGateway implements PaymentGatewayInterface
     {
         return [
             'name' => 'Paysafecard',
+            'description' => 'Accept prepaid voucher payments via Paysafecard. Popular in Europe.',
             'supports_refunds' => false,
             'supports_recurring' => false,
             'currencies' => ['EUR', 'USD'],
+            'settings' => [
+                [
+                    'key' => 'api_key',
+                    'label' => 'API Key',
+                    'type' => 'password',
+                    'encrypted' => true,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'test_mode',
+                    'label' => 'Test Mode',
+                    'type' => 'boolean',
+                    'encrypted' => false,
+                    'required' => false,
+                    'default' => 'true',
+                ],
+            ],
         ];
     }
 

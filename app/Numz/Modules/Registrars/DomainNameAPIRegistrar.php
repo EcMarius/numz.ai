@@ -3,6 +3,7 @@
 namespace App\Numz\Modules\Registrars;
 
 use App\Numz\Contracts\RegistrarInterface;
+use App\Models\ModuleSetting;
 use Illuminate\Support\Facades\Http;
 
 class DomainNameAPIRegistrar implements RegistrarInterface
@@ -10,12 +11,19 @@ class DomainNameAPIRegistrar implements RegistrarInterface
     protected $username;
     protected $password;
     protected $baseUrl;
+    protected $moduleName = 'domainnameapi';
 
     public function __construct()
     {
-        $this->username = config('numz.registrars.domainnameapi.username');
-        $this->password = config('numz.registrars.domainnameapi.password');
-        $this->baseUrl = config('numz.registrars.domainnameapi.test_mode')
+        $this->username = ModuleSetting::get('registrar', $this->moduleName, 'username')
+            ?? config('numz.registrars.domainnameapi.username');
+
+        $this->password = ModuleSetting::get('registrar', $this->moduleName, 'password')
+            ?? config('numz.registrars.domainnameapi.password');
+
+        $testMode = ModuleSetting::get('registrar', $this->moduleName, 'test_mode', 'false') === 'true';
+
+        $this->baseUrl = $testMode
             ? 'https://api-ote.domainnameapi.com'
             : 'https://api.domainnameapi.com';
     }
@@ -140,5 +148,37 @@ class DomainNameAPIRegistrar implements RegistrarInterface
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    public function getConfig(): array
+    {
+        return [
+            'name' => 'DomainNameAPI',
+            'description' => 'Domain registration and management via DomainNameAPI. Supports all major TLDs.',
+            'settings' => [
+                [
+                    'key' => 'username',
+                    'label' => 'API Username',
+                    'type' => 'text',
+                    'encrypted' => false,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'password',
+                    'label' => 'API Password',
+                    'type' => 'password',
+                    'encrypted' => true,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'test_mode',
+                    'label' => 'Test Mode (OTE)',
+                    'type' => 'boolean',
+                    'encrypted' => false,
+                    'required' => false,
+                    'default' => 'false',
+                ],
+            ],
+        ];
     }
 }
