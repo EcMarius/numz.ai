@@ -1,0 +1,34 @@
+{
+  "name": "evenleads-extension",
+  "version": "1.0.0",
+  "description": "EvenLeads browser extension for monitoring Facebook, LinkedIn, Fiverr, and Upwork",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "npm run generate-icons && wxt build",
+    "build:firefox": "npm run generate-icons && wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "generate-icons": "node scripts/generate-icons.cjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/react": "^18.2.38",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "canvas": "^2.11.2",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.3.2",
+    "wxt": "0.18.11"
+  }
+}

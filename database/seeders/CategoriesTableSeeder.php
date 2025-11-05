@@ -12,29 +12,33 @@ class CategoriesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
+        // Delete all existing categories first
         DB::table('categories')->delete();
 
-        DB::table('categories')->insert([
-            0 => [
+        // Insert new categories
+        $categories = [
+            [
                 'id' => 1,
                 'parent_id' => null,
                 'order' => 1,
                 'name' => 'Marketing',
                 'slug' => 'marketing',
-                'created_at' => '2017-11-21 16:23:22',
-                'updated_at' => '2017-11-21 16:23:22',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
-            1 => [
+            [
                 'id' => 2,
                 'parent_id' => null,
-                'order' => 1,
-                'name' => 'Tutorials',
-                'slug' => 'tutorials',
-                'created_at' => '2017-11-21 16:23:22',
-                'updated_at' => '2017-11-21 16:23:22',
+                'order' => 2,
+                'name' => 'SEO',
+                'slug' => 'seo',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
-        ]);
+        ];
 
+        foreach ($categories as $categoryData) {
+            DB::table('categories')->insert($categoryData);
+        }
     }
 }

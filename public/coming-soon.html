@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Scanline grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.01) 2px,
+                    rgba(0, 0, 0, 0.01) 4px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.01) 2px,
+                    rgba(0, 0, 0, 0.01) 4px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        /* Vignette effect */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.05) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .text {
+            font-size: clamp(2.5rem, 9vw, 7rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin: 0;
+            user-select: none;
+        }
+
+        .normal {
+            color: #1a1a1a;
+            display: inline-block;
+            opacity: 0;
+            animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .glitch-wrapper {
+            display: inline-block;
+            position: relative;
+            opacity: 0;
+            animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        .glitch {
+            position: relative;
+            color: #000000;
+            display: inline-block;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+        }
+
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            mix-blend-mode: screen;
+        }
+
+        .glitch::before {
+            color: #ff0033;
+            animation: glitch-1 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+            z-index: -1;
+        }
+
+        .glitch::after {
+            color: #00ffff;
+            animation: glitch-2 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+            z-index: -2;
+        }
+
+        .exclamation {
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            margin-left: 0.1em;
+        }
+
+        .exclamation:hover {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .exclamation:active {
+            transform: scale(0.95);
+        }
+
+        /* Easter egg activated state */
+        .easter-egg-active {
+            animation: rainbow 2s linear infinite, shake 0.5s ease-in-out infinite;
+        }
+
+        .easter-egg-active .glitch::before,
+        .easter-egg-active .glitch::after {
+            animation: glitch-intense 0.1s linear infinite !important;
+        }
+
+        .secret-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: clamp(1rem, 4vw, 2rem);
+            color: #000;
+            opacity: 0;
+            z-index: 1000;
+            text-align: center;
+            font-weight: 700;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .secret-message.show {
+            animation: secretReveal 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes glitch-1 {
+            0% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            2% {
+                opacity: 0.8;
+                transform: translate(-3px, 2px);
+            }
+            4% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            8% {
+                opacity: 0.7;
+                transform: translate(2px, -3px);
+            }
+            10% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            40% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            42% {
+                opacity: 0.8;
+                transform: translate(-4px, 3px);
+            }
+            44% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(0);
+            }
+        }
+
+        @keyframes glitch-2 {
+            0% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            3% {
+                opacity: 0.7;
+                transform: translate(3px, -2px);
+            }
+            5% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            9% {
+                opacity: 0.8;
+                transform: translate(-2px, 3px);
+            }
+            11% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            45% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            47% {
+                opacity: 0.7;
+                transform: translate(4px, -3px);
+            }
+            49% {
+                opacity: 0;
+                transform: translate(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(0);
+            }
+        }
+
+        @keyframes glitch-intense {
+            0% {
+                opacity: 0.9;
+                transform: translate(-6px, 4px);
+            }
+            20% {
+                opacity: 0.8;
+                transform: translate(6px, -4px);
+            }
+            40% {
+                opacity: 0.9;
+                transform: translate(-4px, -6px);
+            }
+            60% {
+                opacity: 0.8;
+                transform: translate(4px, 6px);
+            }
+            80% {
+                opacity: 0.9;
+                transform: translate(-6px, -4px);
+            }
+            100% {
+                opacity: 0.8;
+                transform: translate(6px, 4px);
+            }
+        }
+
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-5px, 5px) rotate(-2deg); }
+            50% { transform: translate(5px, -5px) rotate(2deg); }
+            75% { transform: translate(-5px, -5px) rotate(-1deg); }
+        }
+
+        @keyframes secretReveal {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+            }
+            30% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
+            }
+            40% {
+                transform: translate(-50%, -50%) scale(0.9) rotate(-5deg);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.05) rotate(2deg);
+            }
+            60% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+            85% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0);
+            }
+            50% {
+                transform: translate(var(--float-x, 0), var(--float-y, 0));
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .text {
+                font-size: clamp(2rem, 12vw, 5rem);
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text">
+            <span class="normal">Building something </span>
+            <span class="glitch-wrapper">
+                <span class="glitch" data-text="AMAZING">AMAZING</span><span class="exclamation">!</span>
+            </span>
+        </h1>
+    </div>
+
+    <div class="secret-message">🎉 You found the secret! 🎉</div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particleCount = 30;
+            const body = document.body;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                const floatX = (Math.random() - 0.5) * 100;
+                const floatY = (Math.random() - 0.5) * 100;
+                const duration = 3 + Math.random() * 4;
+                const delay = Math.random() * 2;
+
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.setProperty('--float-x', floatX + 'px');
+                particle.style.setProperty('--float-y', floatY + 'px');
+                particle.style.animation = `float ${duration}s ease-in-out ${delay}s infinite`;
+
+                body.appendChild(particle);
+            }
+        }
+
+        createParticles();
+
+        // Easter egg functionality
+        let clickCount = 0;
+        const exclamation = document.querySelector('.exclamation');
+        const glitchWrapper = document.querySelector('.glitch-wrapper');
+        const secretMessage = document.querySelector('.secret-message');
+
+        exclamation.addEventListener('click', (e) => {
+            e.preventDefault();
+            clickCount++;
+
+            // Visual feedback on each click
+            exclamation.style.transform = 'scale(1.3) rotate(360deg)';
+            setTimeout(() => {
+                exclamation.style.transform = '';
+            }, 300);
+
+            if (clickCount === 5) {
+                // Activate easter egg!
+                glitchWrapper.classList.add('easter-egg-active');
+                secretMessage.classList.add('show');
+
+                // Create color burst effect
+                document.body.style.transition = 'background-color 0.5s';
+                const colors = ['#ffffff', '#fff0f0', '#f0f0ff', '#f0fff0'];
+                let colorIndex = 0;
+
+                const colorInterval = setInterval(() => {
+                    document.body.style.backgroundColor = colors[colorIndex % colors.length];
+                    colorIndex++;
+                }, 100);
+
+                setTimeout(() => {
+                    clearInterval(colorInterval);
+                    document.body.style.backgroundColor = '#ffffff';
+                    glitchWrapper.classList.remove('easter-egg-active');
+                    clickCount = 0;
+
+                    setTimeout(() => {
+                        secretMessage.classList.remove('show');
+                    }, 100);
+                }, 3000);
+            }
+        });
+
+        // Keyboard easter egg - typing "secret" also triggers it
+        let typedKeys = '';
+        const secretCode = 'secret';
+
+        document.addEventListener('keypress', (e) => {
+            typedKeys += e.key.toLowerCase();
+
+            if (typedKeys.length > secretCode.length) {
+                typedKeys = typedKeys.slice(-secretCode.length);
+            }
+
+            if (typedKeys === secretCode) {
+                clickCount = 5;
+                exclamation.click();
+                typedKeys = '';
+            }
+        });
+
+        // Random glitch burst effect
+        const glitchElement = document.querySelector('.glitch');
+
+        function randomGlitchBurst() {
+            if (Math.random() > 0.85) {
+                const originalAnimation = glitchElement.style.animation;
+                glitchElement.style.animation = 'none';
+
+                setTimeout(() => {
+                    glitchElement.style.animation = originalAnimation || '';
+                }, 50);
+            }
+        }
+
+        setInterval(randomGlitchBurst, 3000);
+
+        // Prevent text selection for cleaner look
+        document.addEventListener('selectstart', (e) => {
+            if (e.target.classList.contains('text') ||
+                e.target.classList.contains('glitch') ||
+                e.target.classList.contains('normal')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

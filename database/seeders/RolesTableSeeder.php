@@ -12,10 +12,8 @@ class RolesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('roles')->delete();
-
-        DB::table('roles')->insert([
+        // Use updateOrCreate for idempotency instead of delete + insert
+        $roles = [
             0 => [
                 'id' => 1,
                 'guard_name' => 'web',
@@ -56,7 +54,13 @@ class RolesTableSeeder extends Seeder
                 'created_at' => '2018-07-03 16:27:16',
                 'updated_at' => '2018-07-03 17:28:38',
             ],
-        ]);
+        ];
 
+        foreach ($roles as $roleData) {
+            DB::table('roles')->updateOrInsert(
+                ['id' => $roleData['id']],
+                $roleData
+            );
+        }
     }
 }

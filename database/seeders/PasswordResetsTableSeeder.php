@@ -12,8 +12,7 @@ class PasswordResetsTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('password_resets')->delete();
-
+        // This seeder only deletes - already idempotent (no inserts)
+        // No changes needed for idempotency
     }
 }

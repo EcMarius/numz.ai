@@ -1,0 +1,407 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* EvenLeads Extension CSS Isolation */
+#evenleads-app-root {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: inherit !important;
+  line-height: 1.5 !important;
+}
+
+/* Reset inherited styles BUT preserve display/position/flex */
+#evenleads-app-root * {
+  box-sizing: border-box !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif !important;
+}
+
+/* Reset spacing only */
+#evenleads-app-root div,
+#evenleads-app-root span,
+#evenleads-app-root p,
+#evenleads-app-root h1,
+#evenleads-app-root h2,
+#evenleads-app-root button {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* Ensure all children use border-box */
+#evenleads-app-root *,
+#evenleads-app-root *::before,
+#evenleads-app-root *::after {
+  box-sizing: border-box !important;
+}
+
+/* Force Tailwind utility classes to work within extension - Critical positioning */
+#evenleads-app-root .fixed {
+  position: fixed !important;
+  display: block !important;
+}
+
+#evenleads-app-root .absolute {
+  position: absolute !important;
+  display: block !important;
+}
+
+#evenleads-app-root .relative {
+  position: relative !important;
+}
+
+#evenleads-app-root .inset-0 {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+}
+
+#evenleads-app-root .right-0 {
+  right: 0 !important;
+}
+
+#evenleads-app-root .top-0 {
+  top: 0 !important;
+}
+
+#evenleads-app-root .left-0 {
+  left: 0 !important;
+}
+
+#evenleads-app-root .bottom-0 {
+  bottom: 0 !important;
+}
+
+#evenleads-app-root .flex {
+  display: flex !important;
+}
+
+#evenleads-app-root .flex-col {
+  flex-direction: column !important;
+}
+
+#evenleads-app-root .flex-1 {
+  flex: 1 1 0% !important;
+}
+
+#evenleads-app-root .items-center {
+  align-items: center !important;
+}
+
+#evenleads-app-root .items-start {
+  align-items: flex-start !important;
+}
+
+#evenleads-app-root .justify-center {
+  justify-content: center !important;
+}
+
+#evenleads-app-root .justify-between {
+  justify-content: space-between !important;
+}
+
+#evenleads-app-root .h-full {
+  height: 100% !important;
+}
+
+#evenleads-app-root .w-full {
+  width: 100% !important;
+}
+
+#evenleads-app-root .w-\[400px\] {
+  width: 400px !important;
+}
+
+#evenleads-app-root .grid {
+  display: grid !important;
+}
+
+#evenleads-app-root .grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+#evenleads-app-root .overflow-y-auto {
+  overflow-y: auto !important;
+}
+
+#evenleads-app-root .overflow-hidden {
+  overflow: hidden !important;
+}
+
+#evenleads-app-root .z-\[999999\] {
+  z-index: 999999 !important;
+}
+
+#evenleads-app-root .pointer-events-none {
+  pointer-events: none !important;
+}
+
+#evenleads-app-root .pointer-events-auto {
+  pointer-events: auto !important;
+}
+
+#evenleads-app-root .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+#evenleads-app-root .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Text and spacing utilities */
+#evenleads-app-root .text-center {
+  text-align: center !important;
+}
+
+#evenleads-app-root .text-xs {
+  font-size: 0.75rem !important;
+  line-height: 1rem !important;
+}
+
+#evenleads-app-root .text-sm {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+#evenleads-app-root .text-lg {
+  font-size: 1.125rem !important;
+  line-height: 1.75rem !important;
+}
+
+#evenleads-app-root .font-bold {
+  font-weight: 700 !important;
+}
+
+#evenleads-app-root .font-medium {
+  font-weight: 500 !important;
+}
+
+#evenleads-app-root .gap-1 {
+  gap: 0.25rem !important;
+}
+
+#evenleads-app-root .gap-2 {
+  gap: 0.5rem !important;
+}
+
+#evenleads-app-root .gap-3 {
+  gap: 0.75rem !important;
+}
+
+#evenleads-app-root .p-2 {
+  padding: 0.5rem !important;
+}
+
+#evenleads-app-root .p-3 {
+  padding: 0.75rem !important;
+}
+
+#evenleads-app-root .p-4 {
+  padding: 1rem !important;
+}
+
+#evenleads-app-root .px-2 {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+#evenleads-app-root .px-4 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+#evenleads-app-root .px-8 {
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+#evenleads-app-root .py-2 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+#evenleads-app-root .py-3 {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+#evenleads-app-root .rounded-lg {
+  border-radius: 0.5rem !important;
+}
+
+#evenleads-app-root .rounded {
+  border-radius: 0.25rem !important;
+}
+
+#evenleads-app-root .px-1\.5 {
+  padding-left: 0.375rem !important;
+  padding-right: 0.375rem !important;
+}
+
+#evenleads-app-root .py-0\.5 {
+  padding-top: 0.125rem !important;
+  padding-bottom: 0.125rem !important;
+}
+
+/* Enable pointer events on interactive elements */
+#evenleads-app-root button,
+#evenleads-app-root a,
+#evenleads-app-root input,
+#evenleads-app-root select,
+#evenleads-app-root textarea {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(0, 0, 0, 0.87);
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 400px;
+  min-height: 500px;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #0a0a0a;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #444;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #666;
+  }
+}
+
+/* Sidebar animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Floating icon animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}

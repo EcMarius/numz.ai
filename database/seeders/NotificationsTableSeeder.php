@@ -12,8 +12,7 @@ class NotificationsTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('notifications')->delete();
-
+        // This seeder only deletes - already idempotent (no inserts)
+        // No changes needed for idempotency
     }
 }

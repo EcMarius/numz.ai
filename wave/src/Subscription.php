@@ -29,6 +29,8 @@ class Subscription extends Model
         'ends_at',
         'last_payment_at',
         'next_payment_at',
+        'current_period_start',
+        'current_period_end',
         'cancel_url',
         'update_url',
     ];
@@ -44,6 +46,8 @@ class Subscription extends Model
             'cancelled_at' => 'datetime',
             'last_payment_at' => 'datetime',
             'next_payment_at' => 'datetime',
+            'current_period_start' => 'datetime',
+            'current_period_end' => 'datetime',
         ];
     }
 
@@ -58,10 +62,18 @@ class Subscription extends Model
     public function cancel()
     {
         $this->status = 'cancelled';
+
+        // IMPORTANT: Clear any scheduled downgrade data
+        // This prevents orphaned data and ensures clean cancellation
+        $this->scheduled_plan_id = null;
+        $this->scheduled_plan_date = null;
+        $this->scheduled_plan_limits = null;
+
         $this->save();
 
-        $this->user->syncRoles([]);
-        $this->user->assignRole(config('wave.default_user_role', 'registered'));
+        // DO NOT change user roles - roles are managed separately from subscriptions
+        // Clear user cache after cancellation
+        $this->user->clearUserCache();
     }
 
     /**

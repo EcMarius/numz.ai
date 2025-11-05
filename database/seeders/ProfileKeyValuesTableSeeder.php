@@ -12,10 +12,8 @@ class ProfileKeyValuesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('profile_key_values')->delete();
-
-        DB::table('profile_key_values')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $profileKeyValues = [
             0 => [
                 'id' => 10,
                 'type' => 'text_area',
@@ -24,7 +22,17 @@ class ProfileKeyValuesTableSeeder extends Seeder
                 'key' => 'about',
                 'value' => 'Hello I am the admin user. You can update this information in the edit profile section. Hope you enjoy using Wave.',
             ],
-        ]);
+        ];
 
+        foreach ($profileKeyValues as $profileData) {
+            DB::table('profile_key_values')->updateOrInsert(
+                [
+                    'keyvalue_id' => $profileData['keyvalue_id'],
+                    'keyvalue_type' => $profileData['keyvalue_type'],
+                    'key' => $profileData['key']
+                ],
+                $profileData
+            );
+        }
     }
 }

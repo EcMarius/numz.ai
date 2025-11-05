@@ -1,0 +1,30 @@
+# EvenLeads - AI Lead Generation Platform
+
+## What is it?
+
+EvenLeads is a lead gen tool that finds potential customers for your business by scanning Reddit. Instead of manually searching for people who need your service, we do it automatically.
+
+## How it works
+
+1. **Create a campaign** - Tell us what service/product you offer and who you're looking for
+2. **We scan Reddit** - Our system finds posts where people are asking for exactly what you provide
+3. **Get matched leads** - See posts that match your campaign criteria
+4. **Auto-generate replies** - Click "generate reply" and our AI writes human-sounding responses based on the post content
+5. **Send on autopilot** - Messages or comments that don't look like spam
+
+## Key features
+
+- **Smart matching** - Finds posts where people actually want your service
+- **AI-powered replies** - Analyzes post content to generate personalized, natural responses
+- **Human-like messaging** - No robotic spam, just genuine-sounding outreach
+- **One-click generation** - Just hit generate and get ready-to-send messages
+- **Free 7-day trial** - Test it out risk-free
+
+## Current status
+
+- ✅ Reddit integration (fully working)
+- 🚧 Other platforms coming soon (LinkedIn, Twitter, etc.)
+
+## The pitch
+
+Stop wasting hours scrolling through Reddit looking for potential customers. Let EvenLeads find them for you and write the perfect outreach message automatically.

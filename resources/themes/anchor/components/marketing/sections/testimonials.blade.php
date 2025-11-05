@@ -1,59 +1,51 @@
+@php
+    // Check if testimonials section should be shown
+    $showTestimonials = setting('site.show_testimonials', '1') == '1';
+
+    // Load active testimonials from database
+    $testimonials = $showTestimonials
+        ? \App\Models\Testimonial::active()->ordered()->get()
+        : collect();
+@endphp
+
+@if($showTestimonials && $testimonials->isNotEmpty())
 <section class="w-full">
-    <x-marketing.elements.heading level="h2" title="Oceans of Approval" description="Find out why users are on board with Wave, through their own words and success tales." />
-    <ul role="list" class="grid grid-cols-1 gap-12 py-12 mx-auto max-w-2xl lg:max-w-none lg:grid-cols-3">
-        <li>
-            <figure class="flex flex-col justify-between h-full">
-                <blockquote class="">
-                    <p class="text-sm sm:text-base font-medium text-zinc-500">
-                        Wave's ready-to-use features sped up our launch significantly. Its authentication and subscription tools are particularly impressive and user-friendly.
-                    </p>
-                </blockquote>
-                <figcaption class="flex flex-col justify-between mt-6">
-                    <img alt="#_" src="https://cdn.devdojo.com/images/june2024/adam.jpeg" class="object-cover rounded-full grayscale size-14">
-                    <div class="mt-4">
-                        <div class="font-medium text-zinc-900">Adam Wathan</div>
-                        <div class="mt-1 text-sm text-zinc-500">
-                            Creator of Tailwind CSS
-                        </div>
+    <x-marketing.elements.heading level="h2" title="Trusted by Growing Businesses" description="See how EvenLeads is helping companies discover high-quality leads and grow their customer base." />
+    <div class="grid grid-cols-1 gap-6 py-12 mx-auto max-w-5xl lg:grid-cols-2">
+        @foreach($testimonials as $testimonial)
+        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-md border border-zinc-200 dark:border-zinc-700 p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-start gap-4">
+                @if($testimonial->avatar)
+                    {{-- Display uploaded avatar image --}}
+                    <img
+                        src="{{ $testimonial->avatar_url }}"
+                        alt="{{ $testimonial->name }}"
+                        class="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                    />
+                @else
+                    {{-- Display gradient avatar with initials --}}
+                    <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-{{ $testimonial->gradient_from }} to-{{ $testimonial->gradient_to }} rounded-full flex-shrink-0">
+                        <span class="text-lg font-bold text-white">{{ $testimonial->initials }}</span>
                     </div>
-                </figcaption>
-            </figure>
-        </li>
-        <li>
-            <figure class="flex flex-col justify-between h-full">
-                <blockquote class="">
-                    <p class="text-sm sm:text-base font-medium text-zinc-500">
-                        Wave transformed our development workflow with its excellent API and profile management, saving us valuable time.
-                    </p>
-                </blockquote>
-                <figcaption class="flex flex-col justify-between mt-6">
-                    <img alt="#_" src="https://cdn.devdojo.com/images/june2024/caleb.jpeg" class="object-cover rounded-full grayscale size-14">
-                    <div class="mt-4">
-                        <div class="font-medium text-zinc-900">Caleb Porzio</div>
-                        <div class="mt-1 text-sm text-zinc-500">
-                            Creator of Livewire & Alpine
-                        </div>
+                @endif
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2 mb-2">
+                        <h3 class="font-semibold text-zinc-900 dark:text-white">{{ $testimonial->name }}</h3>
+                        <span class="text-xs text-zinc-400">•</span>
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                            {{ $testimonial->position }}@if($testimonial->company), {{ $testimonial->company }}@endif
+                        </p>
                     </div>
-                </figcaption>
-            </figure>
-        </li>
-        <li>
-            <figure class="flex flex-col justify-between h-full">
-                <blockquote class="">
-                    <p class="text-sm sm:text-base font-medium text-zinc-500">
-                        Wave is an amazing SaaS Starter kit. The team here are Laravel leverages Wave all the time for many projects.
-                    </p>
-                </blockquote>
-                <figcaption class="flex flex-col justify-between mt-6">
-                    <img alt="#_" src="https://cdn.devdojo.com/images/june2024/taylor.jpeg" class="object-cover rounded-full grayscale size-14">
-                    <div class="mt-4">
-                        <div class="font-medium text-zinc-900">Taylor Otwell</div>
-                        <div class="mt-1 text-sm text-zinc-500">
-                            Founder and Creator of Laravel
-                        </div>
-                    </div>
-                </figcaption>
-            </figure>
-        </li>
-    </ul>
+                    <blockquote>
+                        <p class="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                            "{{ $testimonial->content }}"
+                        </p>
+                    </blockquote>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
 </section>
+@endif

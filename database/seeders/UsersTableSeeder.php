@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class UsersTableSeeder extends Seeder
 {
@@ -12,25 +13,26 @@ class UsersTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('users')->delete();
-
-        DB::table('users')->insert([
-            0 => [
+        // Use updateOrCreate for idempotency
+        $user = User::updateOrCreate(
+            ['email' => 'contact@evenleads.com'],
+            [
                 'id' => 1,
-                'name' => 'Wave Admin',
-                'email' => 'admin@admin.com',
-                'username' => 'admin',
+                'name' => 'EvenLeads Admin',
+                'username' => 'contact',
                 'avatar' => 'demo/default.png',
-                'password' => '$2y$10$L8MjmjVVOCbyLHbp7pq/9.1ZEEa5AqE67ZXLd2M4.res05a3Rz/G2',
-                'remember_token' => '4oXDVo48Lm1pc4j7NkWI9cMO4hv5OIEJFMrqjSCKQsIwWMGRFYDvNpdioBfo',
-                'created_at' => '2017-11-21 16:07:22',
-                'updated_at' => '2018-09-22 23:34:02',
+                'password' => bcrypt('CoEvenLeads1!@aA'),
+                'remember_token' => null,
                 'trial_ends_at' => null,
                 'verification_code' => null,
                 'verified' => 1,
-            ],
-        ]);
+            ]
+        );
 
+        if ($user->wasRecentlyCreated) {
+            $this->command->info('✅ New user created successfully! Email: ' . $user->email);
+        } else {
+            $this->command->info('✅ User updated successfully! Email: ' . $user->email);
+        }
     }
 }

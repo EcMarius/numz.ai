@@ -1,0 +1,18 @@
+/* Fix Filament notifications z-index to appear above modals */
+/* Modal uses z-[99999], so notifications need to be higher */
+.fi-no {
+    z-index: 100000 !important;
+}
+
+.fi-no-notifications {
+    z-index: 100000 !important;
+}
+
+.fi-no-notification {
+    z-index: 100000 !important;
+}
+
+/* Also ensure notification wrapper appears above modals */
+[x-data*="FilamentNotifications"] {
+    z-index: 100000 !important;
+}

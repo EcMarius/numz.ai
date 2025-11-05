@@ -12,8 +12,7 @@ class ApiKeysTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('api_keys')->delete();
-
+        // This seeder only deletes - already idempotent (no inserts)
+        // No changes needed for idempotency
     }
 }

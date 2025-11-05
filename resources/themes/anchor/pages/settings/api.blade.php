@@ -78,9 +78,15 @@
                         ->slideOver()
                         ->modalWidth('md')
                         ->form([
-                            TextInput::make('name'),
+                            TextInput::make('name')
+                                ->label('Key Name')
+                                ->disabled(),
                             TextInput::make('key')
-                            // ...
+                                ->label('API Key')
+                                ->helperText('Copy this key to use in your API requests.')
+                                ->copyable()
+                                ->disabled()
+                                ->extraInputAttributes(['class' => 'font-mono text-sm']),
                         ]),
                     EditAction::make()
                         ->slideOver()
@@ -112,6 +118,37 @@
                 description="Manage your API Keys"
             >
                 <div class="flex flex-col">
+                    <!-- API Documentation Link -->
+                    <div class="w-full max-w-lg mb-6 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+                                    API Documentation Available
+                                </h3>
+                                <p class="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                                    Learn how to use our API to manage campaigns, leads, and sync operations programmatically.
+                                </p>
+                                <div class="flex items-center space-x-3">
+                                    <a href="/docs" target="_blank" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 rounded-md transition-colors duration-150">
+                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        View Docs
+                                    </a>
+                                    <a href="/docs.postman" target="_blank" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-300 dark:border-zinc-700 rounded-md transition-colors duration-150">
+                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                        Postman
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <form wire:submit="add" class="w-full max-w-lg">
                         {{ $this->form }}
                         <div class="w-full pt-6 text-right">

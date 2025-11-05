@@ -12,10 +12,8 @@ class VoyagerThemesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('themes')->delete();
-
-        DB::table('themes')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $themes = [
             0 => [
                 'id' => 1,
                 'name' => 'Tailwind Theme',
@@ -25,7 +23,13 @@ class VoyagerThemesTableSeeder extends Seeder
                 'created_at' => '2020-08-23 08:06:45',
                 'updated_at' => '2020-08-23 08:06:45',
             ],
-        ]);
+        ];
 
+        foreach ($themes as $themeData) {
+            DB::table('themes')->updateOrInsert(
+                ['folder' => $themeData['folder']],
+                $themeData
+            );
+        }
     }
 }

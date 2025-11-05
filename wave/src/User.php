@@ -83,38 +83,11 @@ class User extends AuthUser implements FilamentUser, HasAvatar, JWTSubject
 
     public function subscriber()
     {
-        // Use cache if available, otherwise direct query
-        if (app()->bound('cache')) {
-            try {
-                return Cache::remember("user_subscriber_{$this->id}", 300, function () {
-                    return $this->subscriptions()->where('status', 'active')->exists();
-                });
-            } catch (Exception $e) {
-                // Fallback to direct query if cache fails
-            }
-        }
-
         return $this->subscriptions()->where('status', 'active')->exists();
     }
 
     public function subscribedToPlan($planSlug)
     {
-        // Use cache if available, otherwise direct query
-        if (app()->bound('cache')) {
-            try {
-                return Cache::remember("user_plan_{$this->id}_{$planSlug}", 300, function () use ($planSlug) {
-                    $plan = Plan::getByName($planSlug);
-                    if (! $plan) {
-                        return false;
-                    }
-
-                    return $this->subscriptions()->where('plan_id', $plan->id)->where('status', 'active')->exists();
-                });
-            } catch (Exception $e) {
-                // Fallback to direct query if cache fails
-            }
-        }
-
         $plan = Plan::where('name', $planSlug)->first();
         if (! $plan) {
             return false;
@@ -127,12 +100,20 @@ class User extends AuthUser implements FilamentUser, HasAvatar, JWTSubject
     {
         $latest_subscription = $this->latestSubscription();
 
+        if (!$latest_subscription) {
+            return null;
+        }
+
         return Plan::find($latest_subscription->plan_id);
     }
 
     public function planInterval()
     {
         $latest_subscription = $this->latestSubscription();
+
+        if (!$latest_subscription) {
+            return null;
+        }
 
         return ($latest_subscription->cycle == 'month') ? 'Monthly' : 'Yearly';
     }
@@ -149,8 +130,9 @@ class User extends AuthUser implements FilamentUser, HasAvatar, JWTSubject
 
     public function switchPlans(Plan $plan)
     {
-        $this->syncRoles([]);
-        $this->assignRole($plan->role->name);
+        // DO NOT change user roles - roles are managed separately from plans
+        // Only clear cache after plan switch
+        $this->clearUserCache();
     }
 
     public function invoices()
@@ -203,17 +185,7 @@ class User extends AuthUser implements FilamentUser, HasAvatar, JWTSubject
 
     public function isAdmin(): bool
     {
-        // Use cache if available, otherwise direct query
-        if (app()->bound('cache')) {
-            try {
-                return Cache::remember("user_admin_{$this->id}", 600, function () {
-                    return $this->hasRole('admin');
-                });
-            } catch (Exception $e) {
-                // Fallback to direct query if cache fails
-            }
-        }
-
+        // Don't use perfLog here to avoid infinite recursion
         return $this->hasRole('admin');
     }
 
@@ -257,24 +229,14 @@ class User extends AuthUser implements FilamentUser, HasAvatar, JWTSubject
 
     /**
      * Clear user-related caches when data changes
+     * No-op since we don't cache user data anymore
      */
     public function clearUserCache()
     {
-        // Only clear cache if it's available
-        if (app()->bound('cache')) {
-            try {
-                Cache::forget("user_subscriber_{$this->id}");
-                Cache::forget("user_admin_{$this->id}");
+        // Clear PlanCheck middleware cache
+        Cache::forget("user_plan_check_{$this->id}");
 
-                // Clear plan-specific caches
-                $plans = Plan::pluck('name');
-                foreach ($plans as $planName) {
-                    Cache::forget("user_plan_{$this->id}_{$planName}");
-                }
-            } catch (Exception $e) {
-                // Silently handle cache clearing failures
-            }
-        }
+        \Log::info('Cleared user cache', ['user_id' => $this->id]);
     }
 
     public function avatar()

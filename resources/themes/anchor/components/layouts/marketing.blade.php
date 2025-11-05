@@ -13,6 +13,7 @@
 
     @livewire('notifications')
     @include('theme::partials.footer')
+    <x-marketing.cookie-banner />
     @include('theme::partials.footer-scripts')
     {{ $javascript ?? '' }}
 

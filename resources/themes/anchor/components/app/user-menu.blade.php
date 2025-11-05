@@ -21,6 +21,26 @@
         x-cloak>
         <div class="pt-0 mt-1 bg-white border dark:border-zinc-700 text-zinc-600 dark:text-white/70 dark:bg-zinc-900 dark:shadow-xl sm:space-y-0.5 sm:border shadow-md rounded-xl border-zinc-200/70 dark:border-white/10">
             <div class="px-[18px] py-3.5 text-[13px] font-bold text-ellipsis overflow-hidden whitespace-nowrap">{{ auth()->user()->email }}</div>
+
+            @php
+                // Load user with organization relationship
+                $currentUser = \App\Models\User::with('organization')->find(auth()->id());
+                $userOrganization = $currentUser ? $currentUser->organization : null;
+            @endphp
+
+            @if($userOrganization)
+                <div class="px-[18px] py-2.5">
+                    <div class="flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-400">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="flex-1 truncate">
+                            <div class="font-medium text-zinc-700 dark:text-zinc-300 truncate">{{ $userOrganization->name }}</div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="w-full h-px my-2 bg-slate-100 dark:bg-zinc-700"></div>
             <div class="relative px-2 py-1">
                 <x-app.light-dark-toggle></x-app.light-dark-toggle>
@@ -28,12 +48,6 @@
             <div class="w-full h-px my-2 bg-slate-100 dark:bg-zinc-700"></div>
             <div class="relative flex flex-col p-2 space-y-1">
                 <x-app.sidebar-link :hideUntilGroupHover="false" href="{{ route('notifications') }}" icon="phosphor-bell-duotone" active="false">Notifications</x-app.sidebar-link>
-                <x-app.sidebar-link :hideUntilGroupHover="false" href="{{ '/profile/' . auth()->user()->username }}" icon="phosphor-planet-duotone" active="false">Public Profile</x-app.sidebar-link>
-                {{-- @subscriber
-                                <x-app.sidebar-link href="{{ '/profile/' . auth()->user()->username }}" icon="phosphor-credit-card">Manage Subscription</x-app.sidebar-link>
-                @endsubscriber --}}
-
-
                 <x-app.sidebar-link :hideUntilGroupHover="false" href="{{ route('settings.profile') }}" icon="phosphor-gear-duotone" active="false">Settings</x-app.sidebar-link>
                 @notsubscriber
                 <x-app.sidebar-link href="/settings/subscription" icon="phosphor-sparkle-duotone">Upgrade</x-app.sidebar-link>

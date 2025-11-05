@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 200" width="600" height="200">
+  <g transform="translate(20,25) scale(0.7)">
+    <circle cx="100" cy="100" r="80" fill="#222222"/>
+    <path d="M100 64a36 36 0 0 1 36 36c0 30-36 52-36 52s-36-22-36-52a36 36 0 0 1 36-36Z" fill="#fff"/>
+    <circle cx="100" cy="100" r="12" fill="#222222"/>
+  </g>
+  <text x="200" y="118" font-family="Montserrat, sans-serif" font-size="72" fill="#222222" font-weight="600">EvenLeads</text>
+</svg>

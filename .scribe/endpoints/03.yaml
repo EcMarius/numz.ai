@@ -1,0 +1,278 @@
+name: Sync
+description: |-
+
+  API endpoints for syncing campaigns
+endpoints:
+  -
+    httpMethods:
+      - POST
+    uri: 'api/v1/sync/campaign/{id}'
+    metadata:
+      groupName: Sync
+      groupDescription: |-
+
+        API endpoints for syncing campaigns
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Trigger manual sync for a campaign'
+      description: 'Manually trigger a sync operation for a specific campaign to fetch new leads immediately.'
+      authenticated: true
+      deprecated: false
+      custom: []
+    headers:
+      X-API-Key: your_api_key_here
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        name: id
+        description: 'The campaign ID to sync.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "Sync started successfully",
+            "data": {
+              "campaign_id": 1,
+              "campaign_name": "Web Development Services",
+              "status": "queued",
+              "queued_at": "2025-01-15T12:00:00.000000Z"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 404
+        content: |-
+          {
+            "success": false,
+            "message": "Campaign not found"
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 429
+        content: |-
+          {
+            "success": false,
+            "message": "Campaign was synced recently. Please wait before syncing again.",
+            "data": {
+              "last_sync_at": "2025-01-15T11:55:00.000000Z",
+              "next_available_sync": "2025-01-15T12:10:00.000000Z"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - X-API-Key
+      - 6g43cv8PD1aE5beadkZfhV6
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - POST
+    uri: api/v1/sync/all
+    metadata:
+      groupName: Sync
+      groupDescription: |-
+
+        API endpoints for syncing campaigns
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Sync all active campaigns'
+      description: 'Trigger a sync operation for all active campaigns belonging to the authenticated user.'
+      authenticated: true
+      deprecated: false
+      custom: []
+    headers:
+      X-API-Key: your_api_key_here
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "Sync started for 3 campaigns",
+            "data": {
+              "total_campaigns": 3,
+              "queued_campaigns": [
+                {
+                  "id": 1,
+                  "name": "Web Development Services"
+                },
+                {
+                  "id": 2,
+                  "name": "Design Services"
+                },
+                {
+                  "id": 3,
+                  "name": "SEO Consulting"
+                }
+              ],
+              "queued_at": "2025-01-15T12:00:00.000000Z"
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 404
+        content: |-
+          {
+            "success": false,
+            "message": "No active campaigns found"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - X-API-Key
+      - 6g43cv8PD1aE5beadkZfhV6
+    controller: null
+    method: null
+    route: null
+    custom: []
+  -
+    httpMethods:
+      - GET
+    uri: 'api/v1/sync/history/{id}'
+    metadata:
+      groupName: Sync
+      groupDescription: |-
+
+        API endpoints for syncing campaigns
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get sync history for a campaign'
+      description: 'Retrieve the sync history for a specific campaign with details about each sync operation.'
+      authenticated: true
+      deprecated: false
+      custom: []
+    headers:
+      X-API-Key: your_api_key_here
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        name: id
+        description: 'The campaign ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanUrlParameters:
+      id: 1
+    queryParameters:
+      page:
+        name: page
+        description: 'Page number for pagination.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+      per_page:
+        name: per_page
+        description: 'Number of items per page (max 100).'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        custom: []
+    cleanQueryParameters:
+      page: 1
+      per_page: 15
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "data": {
+              "campaign_id": 1,
+              "campaign_name": "Web Development Services",
+              "sync_history": [
+                {
+                  "id": 1,
+                  "started_at": "2025-01-15T10:00:00.000000Z",
+                  "completed_at": "2025-01-15T10:05:00.000000Z",
+                  "status": "completed",
+                  "leads_found": 5,
+                  "errors": null,
+                  "duration_seconds": 300
+                }
+              ],
+              "pagination": {
+                "current_page": 1,
+                "per_page": 15,
+                "total": 50,
+                "last_page": 4
+              }
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 404
+        content: |-
+          {
+            "success": false,
+            "message": "Campaign not found"
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - X-API-Key
+      - 6g43cv8PD1aE5beadkZfhV6
+    controller: null
+    method: null
+    route: null
+    custom: []

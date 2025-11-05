@@ -17,6 +17,13 @@
 
 <x-favicon></x-favicon>
 
+{{-- Preconnect to external domains for faster loading --}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://fonts.gstatic.com">
+
+{{-- NOTE: Hardcoded preload hints removed - asset hashes change on every build
+     The @vite directive below handles optimal asset loading automatically --}}
+
 {{-- Social Share Open Graph Meta Tags --}}
 @if(isset($seo->title) && isset($seo->description) && isset($seo->image))
     <meta property="og:title" content="{{ $seo->title }}">
@@ -46,3 +53,7 @@
 @filamentStyles
 @livewireStyles
 @vite(['resources/themes/anchor/assets/css/app.css', 'resources/themes/anchor/assets/js/app.js'])
+<script src="{{ asset('js/extension-bridge.js') }}"></script>
+
+{{-- PostHog Analytics (loaded in head for early initialization) --}}
+@include('posthog::script')

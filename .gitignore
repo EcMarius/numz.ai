@@ -6,6 +6,7 @@
 /vendor
 .env
 .env.backup
+.env.local
 .phpunit.result.cache
 .phpunit.cache
 Homestead.json
@@ -44,3 +45,8 @@ resources/plugins/*
 # But do not ignore the resources/plugins folder itself
 !resources/plugins/
 !resources/plugins/installed.json
+
+# Laravel/Filament cache files (contains absolute paths, must regenerate on server)
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
+/bootstrap/cache/filament/

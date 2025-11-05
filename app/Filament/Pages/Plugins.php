@@ -8,16 +8,25 @@ use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Livewire\WithFileUploads;
+use Wave\Plugins\PluginInstaller;
 
 class Plugins extends Page
 {
-    protected static BackedEnum|string|null $navigationIcon = 'phosphor-plugs-duotone';
+    use WithFileUploads;
 
-    protected string $view = 'filament.pages.plugins';
+    protected static BackedEnum|string|null $navigationIcon = 'phosphor-plugs-duotone';
 
     protected static ?int $navigationSort = 9;
 
+    public function getView(): string
+    {
+        return 'filament.pages.plugins';
+    }
+
     public $plugins = [];
+
+    public $pluginZip;
 
     public function mount()
     {
@@ -41,7 +50,11 @@ class Plugins extends Page
         $scandirectory = scandir($plugins_folder);
 
         foreach ($scandirectory as $folder) {
-            if ($folder === '.' || $folder === '..') {
+            // Skip system files, hidden files, and non-directories
+            if ($folder === '.' || $folder === '..' ||
+                $folder === 'installed.json' ||
+                str_starts_with($folder, '.') ||
+                !is_dir($plugins_folder.'/'.$folder)) {
                 continue;
             }
 
@@ -161,5 +174,96 @@ class Plugins extends Page
             ->send();
 
         $this->refreshPlugins();
+    }
+
+    public function uploadPlugin()
+    {
+        $this->validate([
+            'pluginZip' => 'required|file|mimes:zip|max:51200', // 50MB max
+        ]);
+
+        $installer = new PluginInstaller();
+
+        // Store the uploaded file temporarily
+        $path = $this->pluginZip->store('temp');
+        $fullPath = storage_path('app/' . $path);
+
+        // Install the plugin
+        $result = $installer->installFromZip($fullPath);
+
+        // Clean up temp file
+        File::delete($fullPath);
+
+        if ($result['success']) {
+            Notification::make()
+                ->title($result['message'])
+                ->success()
+                ->send();
+
+            $this->refreshPlugins();
+            $this->pluginZip = null;
+        } else {
+            Notification::make()
+                ->title('Installation Failed')
+                ->body($result['message'])
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function clearCache()
+    {
+        Artisan::call('cache:clear');
+
+        Notification::make()
+            ->title('Cache cleared successfully')
+            ->success()
+            ->send();
+    }
+
+    public function reloadPlugins()
+    {
+        $this->refreshPlugins();
+    }
+
+    public function refreshDatabaseTables($pluginFolder)
+    {
+        $migrationPath = resource_path("plugins/{$pluginFolder}/database/migrations");
+
+        if (!File::isDirectory($migrationPath)) {
+            Notification::make()
+                ->title('No migrations found')
+                ->body('This plugin does not have any database migrations.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            Artisan::call('migrate:refresh', [
+                '--path' => "resources/plugins/{$pluginFolder}/database/migrations",
+                '--force' => true,
+            ]);
+
+            Notification::make()
+                ->title('Database tables refreshed successfully')
+                ->body('All tables for this plugin have been refreshed.')
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Failed to refresh tables')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+
+        $this->refreshPlugins();
+    }
+
+    public function hasMigrations($pluginFolder)
+    {
+        $migrationPath = resource_path("plugins/{$pluginFolder}/database/migrations");
+        return File::isDirectory($migrationPath) && count(File::files($migrationPath)) > 0;
     }
 }

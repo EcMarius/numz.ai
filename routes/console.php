@@ -10,3 +10,11 @@ Artisan::command('inspire', function () {
 
 // Schedule::command('inspire')->hourly();
 Schedule::command('subscriptions:cancel-expired')->hourly();
+Schedule::command('evenleads:cleanup-stuck-syncs')->everyFifteenMinutes();
+Schedule::command('evenleads:run-automated-syncs')->everyFifteenMinutes();
+
+// Account Warmup - Run hourly to process scheduled warmup activities
+Schedule::command('warmup:run')->hourly();
+
+// API Usage Cleanup - Run daily at 2 AM to clean up logs older than 90 days
+Schedule::command('api-usage:cleanup')->dailyAt('02:00');

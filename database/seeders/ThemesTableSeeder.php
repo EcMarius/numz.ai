@@ -12,10 +12,8 @@ class ThemesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('themes')->delete();
-
-        DB::table('themes')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $themes = [
             0 => [
                 'id' => 1,
                 'name' => 'Anchor Theme',
@@ -23,7 +21,13 @@ class ThemesTableSeeder extends Seeder
                 'active' => 1,
                 'version' => 1.0,
             ],
-        ]);
+        ];
 
+        foreach ($themes as $themeData) {
+            DB::table('themes')->updateOrInsert(
+                ['folder' => $themeData['folder']],
+                $themeData
+            );
+        }
     }
 }

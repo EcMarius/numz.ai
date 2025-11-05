@@ -10,9 +10,12 @@ class Media extends Page
 {
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-photo';
 
-    protected string $view = 'wave::media.index';
-
     protected static ?int $navigationSort = 5;
+
+    public function getView(): string
+    {
+        return 'wave::media.index';
+    }
 
     public function getMaxContentWidth(): Width|string|null
     {

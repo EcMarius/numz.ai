@@ -8,4 +8,9 @@ export default {
         './resources/views/filament/pages/*.blade.php',
         './app/Http/Middleware/WaveEditTab.php'
     ],
+    safelist: [
+        {
+            pattern: /^(h|w|max-w|max-h|min-w|min-h)-/,
+        },
+    ],
 }

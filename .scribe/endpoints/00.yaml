@@ -1,0 +1,74 @@
+name: Authentication
+description: |-
+
+  API endpoints for authentication
+endpoints:
+  -
+    httpMethods:
+      - GET
+    uri: api/v1/auth/validate
+    metadata:
+      groupName: Authentication
+      groupDescription: |-
+
+        API endpoints for authentication
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Validate API Key'
+      description: 'Validates if an API key is valid and returns associated user information.'
+      authenticated: true
+      deprecated: false
+      custom: []
+    headers:
+      X-API-Key: your_api_key_here
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        status: 200
+        content: |-
+          {
+            "success": true,
+            "message": "API key is valid",
+            "data": {
+              "user": {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com"
+              },
+              "api_key": {
+                "name": "My API Key",
+                "created_at": "2025-01-01T00:00:00.000000Z",
+                "last_used_at": "2025-01-15T12:30:00.000000Z"
+              }
+            }
+          }
+        headers: []
+        description: ''
+        custom: []
+      -
+        status: 401
+        content: |-
+          {
+            "success": false,
+            "message": "Invalid API key."
+          }
+        headers: []
+        description: ''
+        custom: []
+    responseFields: []
+    auth:
+      - headers
+      - X-API-Key
+      - 6g43cv8PD1aE5beadkZfhV6
+    controller: null
+    method: null
+    route: null
+    custom: []

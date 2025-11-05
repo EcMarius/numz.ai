@@ -41,12 +41,15 @@
     </div>
 
     @livewire('notifications')
-    @if(!auth()->guest() && auth()->user()->hasChangelogNotifications())
-        @include('theme::partials.changelogs')
-    @endif
+
+    {{-- Feedback Form --}}
+    @livewire('evenleads-feedback-form')
+
+    <x-marketing.cookie-banner />
+
     @include('theme::partials.footer-scripts')
     {{ $javascript ?? '' }}
-    
+
 
 </body>
 </html>

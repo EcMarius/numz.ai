@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './component-styles.css';
+@import '../../../../../resources/css/notifications-fix.css';
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 @custom-variant dark (&:where(.dark, .dark *));
@@ -19,6 +20,131 @@
 
 [x-cloak]{
   display:none;
+}
+
+/* AI Section Highlight Pulse Animation */
+@keyframes ai-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1);
+    }
+}
+
+.ai-highlight-pulse {
+    animation: ai-pulse 1s ease-in-out 4;
+    border-color: rgb(59, 130, 246) !important;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* Glassmorphism Tip Styles */
+.glassmorphism-tip {
+    position: absolute;
+    right: -380px;
+    top: 0;
+    width: 300px;
+    z-index: 60;
+    pointer-events: none;
+    margin-right: 24px;
+}
+
+.glassmorphism-tip-inner {
+    position: relative;
+    backdrop-filter: blur(24px) saturate(180%);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.7) 100%
+    );
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+        0 8px 32px 0 rgba(31, 38, 135, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+}
+
+.dark .glassmorphism-tip-inner {
+    background: linear-gradient(
+        135deg,
+        rgba(30, 30, 30, 0.95) 0%,
+        rgba(20, 20, 20, 0.85) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.glassmorphism-liquid-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        45deg,
+        rgba(59, 130, 246, 0.1),
+        rgba(147, 51, 234, 0.1),
+        rgba(236, 72, 153, 0.1)
+    );
+    background-size: 200% 200%;
+    animation: liquidGlass 8s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+@keyframes liquidGlass {
+    0%, 100% { background-position: 0% 50%; }
+    33% { background-position: 100% 50%; }
+    66% { background-position: 50% 100%; }
+}
+
+.glassmorphism-tip-content {
+    position: relative;
+    z-index: 1;
+    padding: 16px;
+}
+
+.glassmorphism-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+    color: rgb(59, 130, 246);
+    flex-shrink: 0;
+}
+
+.dark .glassmorphism-icon {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
+    color: rgb(96, 165, 250);
+}
+
+.glassmorphism-tip-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgb(17, 24, 39);
+    margin-bottom: 4px;
+}
+
+.dark .glassmorphism-tip-title {
+    color: rgb(243, 244, 246);
+}
+
+.glassmorphism-tip-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgb(75, 85, 99);
+}
+
+.dark .glassmorphism-tip-text {
+    color: rgb(156, 163, 175);
+}
+
+@media (max-width: 1280px) {
+    .glassmorphism-tip {
+        display: none;
+    }
 }
 
 .wave {
@@ -138,3 +264,26 @@ https://github.com/filamentphp/filament/blob/4.x/docs/01-introduction/02-install
 
 /* Required by widgets */
 @import '../../../../../vendor/filament/widgets/resources/css/index.css';
+
+/* Fix Filament notifications z-index to appear above campaign modals (z-99999) */
+.fi-no-notifications {
+    z-index: 9999999 !important;
+}
+
+.fi-no-notification {
+    z-index: 9999999 !important;
+}
+
+/* Also fix the notification manager wrapper */
+.filament-notifications {
+    z-index: 9999999 !important;
+}
+
+/* Fix all Filament notification related elements */
+[data-notifications-wrapper] {
+    z-index: 9999999 !important;
+}
+
+[x-data*="notificationsAlpineComponent"] {
+    z-index: 9999999 !important;
+}

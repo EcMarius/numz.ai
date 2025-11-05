@@ -25,6 +25,12 @@ class Update extends Component
 
     public $subscription;
 
+    public $showCancelForm = false;
+
+    public $cancellation_reason = '';
+
+    public $cancellation_details = '';
+
     public function mount()
     {
         $this->subscription = auth()->user()->subscription;
@@ -105,6 +111,155 @@ class Update extends Component
             $subscription->cancel();
 
             return redirect()->to('/settings/subscription');
+        }
+    }
+
+    public function openCancelForm()
+    {
+        $this->showCancelForm = true;
+    }
+
+    public function closeCancelForm()
+    {
+        $this->showCancelForm = false;
+        $this->cancellation_reason = '';
+        $this->cancellation_details = '';
+    }
+
+    public function cancelSubscription()
+    {
+        // Validate the reason
+        $this->validate([
+            'cancellation_reason' => 'required|string',
+            'cancellation_details' => 'nullable|string|max:1000',
+        ]);
+
+        $subscription = auth()->user()->subscription;
+
+        if (!$subscription) {
+            Notification::make()
+                ->title('No active subscription found.')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        if (config('wave.billing_provider') == 'stripe') {
+            // Cancel Stripe subscription
+            try {
+                $stripeService = app(\App\Services\StripeService::class);
+                \Stripe\Stripe::setApiKey($stripeService->getSecretKey());
+
+                // CRITICAL SECURITY FIX: Check for pending prorations before allowing cancellation
+                // This prevents users from increasing seats and cancelling before being charged
+                $pendingProrations = $stripeService->checkPendingProrations(
+                    $subscription->vendor_customer_id,
+                    $subscription->vendor_subscription_id
+                );
+
+                if ($pendingProrations['has_prorations']) {
+                    \Log::warning('User attempting to cancel with pending prorations - forcing immediate payment', [
+                        'user_id' => auth()->id(),
+                        'subscription_id' => $subscription->id,
+                        'pending_amount' => $pendingProrations['amount'],
+                    ]);
+
+                    // Force immediate invoice and payment of pending charges
+                    try {
+                        $invoiceResult = $stripeService->createImmediateInvoice(
+                            $subscription->vendor_customer_id,
+                            $subscription->vendor_subscription_id,
+                            'Pending charges due before cancellation'
+                        );
+
+                        if (!$invoiceResult['success']) {
+                            throw new \Exception('Payment of pending charges failed. Please update your payment method before cancelling.');
+                        }
+
+                        \Log::info('Forced payment of pending prorations before cancellation', [
+                            'user_id' => auth()->id(),
+                            'invoice_id' => $invoiceResult['invoice_id'],
+                            'amount_charged' => $invoiceResult['amount'],
+                        ]);
+
+                        // Clear pending proration tracking
+                        $subscription->pending_proration_amount = null;
+                        $subscription->pending_invoice_id = null;
+                        $subscription->save();
+
+                    } catch (\Exception $paymentError) {
+                        \Log::error('Failed to charge pending prorations before cancellation', [
+                            'user_id' => auth()->id(),
+                            'error' => $paymentError->getMessage(),
+                        ]);
+
+                        Notification::make()
+                            ->title('Payment Required Before Cancellation')
+                            ->body('You have pending charges of ' . strtoupper($pendingProrations['currency']) . ' ' . number_format($pendingProrations['amount'], 2) . ' that must be paid before cancellation. ' . $paymentError->getMessage())
+                            ->danger()
+                            ->duration(10000)
+                            ->send();
+
+                        return;
+                    }
+                }
+
+                // Cancel the subscription at the end of the current period
+                \Stripe\Subscription::update(
+                    $subscription->vendor_subscription_id,
+                    [
+                        'cancel_at_period_end' => true,
+                        'metadata' => [
+                            'cancellation_reason' => $this->cancellation_reason,
+                            'cancellation_details' => $this->cancellation_details ?? '',
+                        ],
+                    ]
+                );
+
+                // Get the subscription to get the current period end
+                $stripeSubscription = \Stripe\Subscription::retrieve($subscription->vendor_subscription_id);
+
+                // Update our database
+                $subscription->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'ends_at' => $stripeSubscription->current_period_end
+                        ? \Carbon\Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                        : now()->addDays(30), // Fallback to 30 days from now if period_end is null
+                    'cancellation_reason' => $this->cancellation_reason,
+                    'cancellation_details' => $this->cancellation_details,
+                ]);
+
+                $this->showCancelForm = false;
+                $this->cancellation_scheduled = true;
+                $this->subscription_ends_at = $subscription->ends_at;
+
+                Notification::make()
+                    ->title('Subscription Cancelled')
+                    ->body('Your subscription will remain active until ' . \Carbon\Carbon::parse($subscription->ends_at)->format('F jS, Y'))
+                    ->success()
+                    ->send();
+
+            } catch (\Exception $e) {
+                \Log::error('Error cancelling subscription', [
+                    'user_id' => auth()->id(),
+                    'error' => $e->getMessage(),
+                ]);
+
+                Notification::make()
+                    ->title('Error cancelling subscription')
+                    ->body($e->getMessage())
+                    ->danger()
+                    ->send();
+            }
+        } elseif (config('wave.billing_provider') == 'paddle') {
+            // For Paddle, use the existing cancel method but add reason and details
+            $subscription->update([
+                'cancellation_reason' => $this->cancellation_reason,
+                'cancellation_details' => $this->cancellation_details,
+            ]);
+
+            $this->cancel();
         }
     }
 

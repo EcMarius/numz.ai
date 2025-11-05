@@ -10,7 +10,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('password')->nullable()->change();
@@ -21,7 +21,7 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void
+    public function down()
     {
         // Update records with NULL values to avoid constraint violations
         DB::table('users')->whereNull('name')->update(['name' => '']);

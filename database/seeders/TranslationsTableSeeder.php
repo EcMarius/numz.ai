@@ -12,10 +12,8 @@ class TranslationsTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('translations')->delete();
-
-        DB::table('translations')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $translations = [
             0 => [
                 'id' => 1,
                 'table_name' => 'data_types',
@@ -317,7 +315,18 @@ class TranslationsTableSeeder extends Seeder
                 'created_at' => '2017-11-21 16:23:23',
                 'updated_at' => '2017-11-21 16:23:23',
             ],
-        ]);
+        ];
 
+        foreach ($translations as $translationData) {
+            DB::table('translations')->updateOrInsert(
+                [
+                    'table_name' => $translationData['table_name'],
+                    'column_name' => $translationData['column_name'],
+                    'foreign_key' => $translationData['foreign_key'],
+                    'locale' => $translationData['locale']
+                ],
+                $translationData
+            );
+        }
     }
 }

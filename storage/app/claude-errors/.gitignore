@@ -1,0 +1,3 @@
+# Claude Error Reports
+*.md
+!.gitignore

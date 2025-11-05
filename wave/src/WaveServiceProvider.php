@@ -30,7 +30,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
-use Intervention\Image\ImageManagerStatic;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Laravel\Folio\Folio;
 use Livewire\Livewire;
 use Wave\Facades\Wave as WaveFacade;
@@ -76,7 +77,6 @@ class WaveServiceProvider extends ServiceProvider
 
     public function boot(Router $router, Dispatcher $event): void
     {
-
         Relation::morphMap([
             'users' => config('wave.user_model'),
         ]);
@@ -85,8 +85,10 @@ class WaveServiceProvider extends ServiceProvider
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'wave');
         $this->loadMigrationsFrom(realpath(__DIR__.'/../database/migrations'));
+
         $this->loadBladeDirectives();
         $this->loadHelpers();
+
         $this->setDefaultThemeColors();
 
         FilamentColor::register([
@@ -100,7 +102,8 @@ class WaveServiceProvider extends ServiceProvider
 
         Validator::extend('imageable', function ($attribute, $value, $params, $validator) {
             try {
-                ImageManagerStatic::make($value);
+                $manager = new ImageManager(new Driver());
+                $manager->read($value);
 
                 return true;
             } catch (Exception $e) {

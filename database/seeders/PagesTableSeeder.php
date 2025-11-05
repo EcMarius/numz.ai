@@ -12,10 +12,8 @@ class PagesTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('pages')->delete();
-
-        DB::table('pages')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $pages = [
             0 => [
                 'id' => 1,
                 'author_id' => 1,
@@ -44,7 +42,13 @@ class PagesTableSeeder extends Seeder
                 'created_at' => '2018-03-30 03:04:51',
                 'updated_at' => '2018-03-30 03:04:51',
             ],
-        ]);
+        ];
 
+        foreach ($pages as $pageData) {
+            DB::table('pages')->updateOrInsert(
+                ['slug' => $pageData['slug']],
+                $pageData
+            );
+        }
     }
 }

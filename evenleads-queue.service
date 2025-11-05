@@ -1,0 +1,15 @@
+[Unit]
+Description=EvenLeads Queue Worker
+After=network.target
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/evenleads.com
+ExecStart=/usr/bin/php /www/wwwroot/evenleads.com/artisan queue:work --sleep=3 --tries=3 --timeout=300
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

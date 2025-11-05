@@ -50,8 +50,14 @@ class UserResource extends Resource
                     ->required()
                     ->maxLength(191),
                 FileUpload::make('avatar')
-                    ->required()
-                    ->image(),
+                    ->image()
+                    ->directory('avatars')
+                    ->visibility('public')
+                    ->avatar()
+                    ->imageEditor()
+                    ->circleCropper()
+                    ->maxSize(2048)
+                    ->helperText('Upload a profile picture (optional)'),
                 DateTimePicker::make('email_verified_at'),
                 TextInput::make('password')
                     ->password()
@@ -68,6 +74,20 @@ class UserResource extends Resource
                 TextInput::make('verification_code')
                     ->maxLength(191),
                 Toggle::make('verified'),
+                Toggle::make('has_smart_search')
+                    ->label('Force Smart Search (AI-based)')
+                    ->helperText('When enabled, this user will use AI-based lead relevance checking regardless of their plan settings. This provides better quality leads but consumes more AI tokens.'),
+
+                // Admin Rate Limit Bypass Toggles
+                Toggle::make('bypass_post_sync_limit')
+                    ->label('Bypass Post Management Sync Cooldown')
+                    ->helperText('Removes the 3-minute cooldown between post syncs. User can sync posts anytime.'),
+                Toggle::make('bypass_campaign_sync_limit')
+                    ->label('Bypass Campaign Manual Sync Limit')
+                    ->helperText('Allows unlimited manual campaign syncs, ignoring the monthly quota limit.'),
+                Toggle::make('bypass_ai_reply_limit')
+                    ->label('Bypass AI Reply Generation Limit')
+                    ->helperText('Allows unlimited AI reply generations, ignoring the monthly quota limit.'),
             ]);
     }
 
@@ -81,9 +101,7 @@ class UserResource extends Resource
                     ->searchable(),
                 ImageColumn::make('avatar')
                     ->circular()
-                    ->defaultImageUrl(url('storage/demo/default.png')),
-                TextColumn::make('username')
-                    ->searchable(),
+                    ->defaultImageUrl(fn () => url(setting('site.default_profile_photo', 'storage/demo/default.png'))),
             ])
             ->filters([
                 //
@@ -94,6 +112,24 @@ class UserResource extends Resource
                 Action::make('Impersonate')
                     ->url(fn ($record) => route('impersonate', $record))
                     ->visible(fn ($record) => auth()->user()->id !== $record->id),
+                Action::make('clearSyncCooldowns')
+                    ->label('Clear Sync Cooldowns')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Clear All Sync Cooldowns?')
+                    ->modalDescription('This will reset all sync cooldowns for this user (post management, campaigns, etc.)')
+                    ->action(function (User $record) {
+                        // Clear post management cooldown from cache
+                        $cacheKey = 'user_' . $record->id . '_last_post_sync';
+                        \Illuminate\Support\Facades\Cache::forget($cacheKey);
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Sync Cooldowns Cleared')
+                            ->body('All sync cooldowns have been reset for ' . $record->name)
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

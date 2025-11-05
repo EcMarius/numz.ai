@@ -9,18 +9,15 @@ const activeTheme = fs.existsSync(themeFilePath) ? JSON.parse(fs.readFileSync(th
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
+        // Only scan YOUR files, not vendor files (prevents encoding issues)
         './app/Filament/**/*.php',
-        './resources/views/filament/**/*.blade.php',
-        './vendor/filament/**/*.blade.php',
-        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
-        './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
-        './resources/views/components/**/*.blade.php',
-        './resources/views/components/blade.php',
-        './wave/resources/views/**/*.blade.php',
         './resources/themes/' + activeTheme + '/**/*.blade.php',
+        './wave/resources/views/**/*.blade.php',
+        './resources/plugins/**/*.blade.php',
         './resources/plugins/**/*.php',
-        './config/*.php'
+        // NOTE: JS files removed - Tailwind's Vue preprocessor causes UTF-8 errors
+        // We don't need to scan JS for Tailwind classes anyway
     ],
 
     theme: {
@@ -33,7 +30,7 @@ export default {
                     from: { transform: 'translateX(0)' },
                     to: { transform: 'translateX(-100%)' },
                 }
-            } 
+            }
         },
     },
 

@@ -12,8 +12,13 @@ class DashboardWidget extends Widget
 
     protected static bool $isLazy = false;
 
-    /**
-     * @var view-string
-     */
-    protected string $view = 'filament.widgets.dashboard-widget';
+    public function mount(): void
+    {
+        $this->view = $this->getView();
+    }
+
+    public function getView(): string
+    {
+        return 'filament.widgets.dashboard-widget';
+    }
 }

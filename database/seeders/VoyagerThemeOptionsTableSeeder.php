@@ -12,10 +12,8 @@ class VoyagerThemeOptionsTableSeeder extends Seeder
      */
     public function run(): void
     {
-
-        DB::table('theme_options')->delete();
-
-        DB::table('theme_options')->insert([
+        // Use updateOrInsert for idempotency instead of delete + insert
+        $themeOptions = [
             0 => [
                 'id' => 17,
                 'theme_id' => 1,
@@ -80,7 +78,13 @@ class VoyagerThemeOptionsTableSeeder extends Seeder
                 'created_at' => '2018-08-28 23:12:11',
                 'updated_at' => '2018-08-28 23:12:11',
             ],
-        ]);
+        ];
 
+        foreach ($themeOptions as $optionData) {
+            DB::table('theme_options')->updateOrInsert(
+                ['theme_id' => $optionData['theme_id'], 'key' => $optionData['key']],
+                $optionData
+            );
+        }
     }
 }

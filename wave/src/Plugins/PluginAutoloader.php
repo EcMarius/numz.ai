@@ -37,21 +37,21 @@ class PluginAutoloader
             }
 
             $plugin_name = $parts[0];
-            $kebab_name = Str::kebab($plugin_name);
             $class_file = implode('/', array_slice($parts, 1)).'.php';
 
-            $file = $base_dir.$kebab_name.'/'.$class_file;
-            if (File::exists($file)) {
-                require $file;
+            // Try multiple naming conventions
+            $possiblePaths = [
+                $base_dir.$plugin_name.'/'.$class_file,                    // Exact match (EvenLeads)
+                $base_dir.$plugin_name.'/src/'.$class_file,                // Exact match with src
+                $base_dir.Str::kebab($plugin_name).'/'.$class_file,        // Kebab case (one-to-lead)
+                $base_dir.Str::kebab($plugin_name).'/src/'.$class_file,    // Kebab case with src
+            ];
 
-                return;
-            }
-
-            $src_file = $base_dir.$kebab_name.'/src/'.$class_file;
-            if (File::exists($src_file)) {
-                require $src_file;
-
-                return;
+            foreach ($possiblePaths as $possiblePath) {
+                if (File::exists($possiblePath)) {
+                    require $possiblePath;
+                    return;
+                }
             }
         });
 

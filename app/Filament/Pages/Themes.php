@@ -19,7 +19,10 @@ class Themes extends Page
 
     protected static ?int $navigationSort = 8;
 
-    protected string $view = 'filament.pages.themes';
+    public function getView(): string
+    {
+        return 'filament.pages.themes';
+    }
 
     public function mount()
     {

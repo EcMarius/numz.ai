@@ -12,65 +12,55 @@ class Plan extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'custom_properties' => 'array',
+        'openai_models' => 'array',
+    ];
+
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
     }
 
     /**
-     * Get all active plans with caching
+     * Get custom property value for a specific plugin
+     */
+    public function getCustomProperty(string $plugin, string $key, $default = null)
+    {
+        $properties = $this->custom_properties ?? [];
+        return $properties[$plugin][$key] ?? $default;
+    }
+
+    /**
+     * Get all custom properties for a plugin
+     */
+    public function getPluginProperties(string $plugin): array
+    {
+        $properties = $this->custom_properties ?? [];
+        return $properties[$plugin] ?? [];
+    }
+
+    /**
+     * Get all active plans (no caching)
      */
     public static function getActivePlans()
     {
-        // Use cache if available, otherwise direct query
-        if (app()->bound('cache')) {
-            try {
-                return Cache::remember('wave_active_plans', 1800, function () {
-                    return self::where('active', 1)->with('role')->get();
-                });
-            } catch (Exception $e) {
-                // Fallback to direct query if cache fails
-            }
-        }
-
         return self::where('active', 1)->with('role')->get();
     }
 
     /**
-     * Get plan by name with caching
+     * Get plan by name (no caching)
      */
     public static function getByName($name)
     {
-        // Use cache if available, otherwise direct query
-        if (app()->bound('cache')) {
-            try {
-                return Cache::remember("wave_plan_{$name}", 1800, function () use ($name) {
-                    return self::where('name', $name)->with('role')->first();
-                });
-            } catch (Exception $e) {
-                // Fallback to direct query if cache fails
-            }
-        }
-
         return self::where('name', $name)->with('role')->first();
     }
 
     /**
-     * Clear plan cache
+     * Clear plan cache - no-op since we don't cache anymore
      */
     public static function clearCache()
     {
-        // Only clear cache if it's available
-        if (app()->bound('cache')) {
-            try {
-                Cache::forget('wave_active_plans');
-                $plans = self::pluck('name');
-                foreach ($plans as $planName) {
-                    Cache::forget("wave_plan_{$planName}");
-                }
-            } catch (Exception $e) {
-                // Silently handle cache clearing failures
-            }
-        }
+        // No caching, nothing to clear
     }
 }
