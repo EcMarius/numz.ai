@@ -58,6 +58,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(\RalphJSmit\Livewire\Urls\Middleware\LivewireUrlsMiddleware::class);
 
+        // Check installation status (redirects to installer if not installed)
+        $middleware->web(\App\Http\Middleware\CheckInstallation::class);
+
         // Auto-start ngrok on localhost (runs once per hour via cache)
         $middleware->web(\App\Http\Middleware\NgrokAutoStart::class);
 

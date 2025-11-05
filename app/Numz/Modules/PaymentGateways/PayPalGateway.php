@@ -3,6 +3,7 @@
 namespace App\Numz\Modules\PaymentGateways;
 
 use App\Numz\Contracts\PaymentGatewayInterface;
+use App\Models\ModuleSetting;
 use Illuminate\Support\Facades\Http;
 
 class PayPalGateway implements PaymentGatewayInterface
@@ -10,12 +11,19 @@ class PayPalGateway implements PaymentGatewayInterface
     protected $clientId;
     protected $secret;
     protected $baseUrl;
+    protected $moduleName = 'paypal';
 
     public function __construct()
     {
-        $this->clientId = config('numz.gateways.paypal.client_id');
-        $this->secret = config('numz.gateways.paypal.secret');
-        $this->baseUrl = config('numz.gateways.paypal.sandbox') 
+        $this->clientId = ModuleSetting::get('payment_gateway', $this->moduleName, 'client_id')
+            ?? config('numz.gateways.paypal.client_id');
+        
+        $this->secret = ModuleSetting::get('payment_gateway', $this->moduleName, 'secret')
+            ?? config('numz.gateways.paypal.secret');
+        
+        $sandbox = ModuleSetting::get('payment_gateway', $this->moduleName, 'sandbox', 'true') === 'true';
+        
+        $this->baseUrl = $sandbox
             ? 'https://api-m.sandbox.paypal.com'
             : 'https://api-m.paypal.com';
     }
@@ -96,6 +104,30 @@ class PayPalGateway implements PaymentGatewayInterface
             'supports_refunds' => true,
             'supports_recurring' => true,
             'currencies' => ['USD', 'EUR', 'GBP'],
+            'settings' => [
+                [
+                    'key' => 'client_id',
+                    'label' => 'Client ID',
+                    'type' => 'text',
+                    'encrypted' => false,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'secret',
+                    'label' => 'Secret Key',
+                    'type' => 'password',
+                    'encrypted' => true,
+                    'required' => true,
+                ],
+                [
+                    'key' => 'sandbox',
+                    'label' => 'Sandbox Mode',
+                    'type' => 'boolean',
+                    'encrypted' => false,
+                    'required' => false,
+                    'default' => 'true',
+                ],
+            ],
         ];
     }
 

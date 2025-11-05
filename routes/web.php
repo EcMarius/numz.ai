@@ -14,6 +14,19 @@
 use Wave\Facades\Wave;
 use App\Http\Controllers\PluginUploadController;
 use App\Http\Controllers\BlogAIController;
+use App\Http\Controllers\InstallerController;
+
+// Installer Routes (must be before any middleware)
+Route::prefix('install')->name('installer.')->group(function () {
+    Route::get('/', [InstallerController::class, 'index'])->name('index');
+    Route::get('/requirements', [InstallerController::class, 'requirements'])->name('requirements');
+    Route::get('/license', [InstallerController::class, 'license'])->name('license');
+    Route::post('/license/verify', [InstallerController::class, 'verifyLicense'])->name('license.verify');
+    Route::get('/database', [InstallerController::class, 'database'])->name('database');
+    Route::post('/database/test', [InstallerController::class, 'testDatabase'])->name('database.test');
+    Route::get('/admin', [InstallerController::class, 'admin'])->name('admin');
+    Route::post('/install', [InstallerController::class, 'install'])->name('install');
+});
 
 // NOTE: Email verification route is registered in AppServiceProvider::boot()
 // to ensure it overrides DevDojo Auth's route (which uses signed URLs)
