@@ -247,5 +247,48 @@ Route::post('/unsubscribe/process', [\App\Http\Controllers\GrowthHackingControll
 Route::get('/track/open/{token}', [\App\Http\Controllers\GrowthHackingController::class, 'trackOpen'])->name('growth-hack.track-open');
 Route::get('/track/click', [\App\Http\Controllers\GrowthHackingController::class, 'trackClick'])->name('growth-hack.track-click');
 
+// Marketplace routes
+Route::prefix('marketplace')->name('marketplace.')->group(function () {
+    // Public routes
+    Route::get('/', [\App\Http\Controllers\MarketplaceController::class, 'index'])->name('index');
+    Route::get('/category/{category}', [\App\Http\Controllers\MarketplaceController::class, 'category'])->name('category');
+    Route::get('/item/{item}', [\App\Http\Controllers\MarketplaceController::class, 'show'])->name('show');
+
+    // Authenticated routes
+    Route::middleware('auth')->group(function () {
+        // Download
+        Route::get('/item/{item}/download', [\App\Http\Controllers\MarketplaceController::class, 'download'])->name('download');
+
+        // Purchases
+        Route::get('/purchases', [\App\Http\Controllers\MarketplacePurchaseController::class, 'index'])->name('purchases.index');
+        Route::post('/item/{item}/purchase', [\App\Http\Controllers\MarketplacePurchaseController::class, 'initiate'])->name('purchase.initiate');
+        Route::get('/purchase/success', [\App\Http\Controllers\MarketplacePurchaseController::class, 'success'])->name('purchase.success');
+        Route::get('/purchase/{purchase}/refund', [\App\Http\Controllers\MarketplacePurchaseController::class, 'refundRequest'])->name('purchase.refund');
+        Route::post('/purchase/{purchase}/refund', [\App\Http\Controllers\MarketplacePurchaseController::class, 'refundProcess'])->name('purchase.refund.process');
+
+        // Creator dashboard
+        Route::prefix('creator')->name('creator.')->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\MarketplaceCreatorController::class, 'dashboard'])->name('dashboard');
+            Route::get('/items/create', [\App\Http\Controllers\MarketplaceCreatorController::class, 'create'])->name('create');
+            Route::post('/items', [\App\Http\Controllers\MarketplaceCreatorController::class, 'store'])->name('store');
+            Route::get('/items/{item}/edit', [\App\Http\Controllers\MarketplaceCreatorController::class, 'edit'])->name('edit');
+            Route::put('/items/{item}', [\App\Http\Controllers\MarketplaceCreatorController::class, 'update'])->name('update');
+            Route::delete('/items/{item}', [\App\Http\Controllers\MarketplaceCreatorController::class, 'destroy'])->name('destroy');
+            Route::post('/items/{item}/submit', [\App\Http\Controllers\MarketplaceCreatorController::class, 'submitForReview'])->name('submit');
+            Route::get('/items/{item}/analytics', [\App\Http\Controllers\MarketplaceCreatorController::class, 'analytics'])->name('analytics');
+        });
+
+        // Payouts
+        Route::prefix('payouts')->name('payouts.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MarketplacePayoutController::class, 'index'])->name('index');
+            Route::get('/request', [\App\Http\Controllers\MarketplacePayoutController::class, 'create'])->name('create');
+            Route::post('/request', [\App\Http\Controllers\MarketplacePayoutController::class, 'store'])->name('store');
+            Route::get('/{payout}', [\App\Http\Controllers\MarketplacePayoutController::class, 'show'])->name('show');
+            Route::post('/{payout}/cancel', [\App\Http\Controllers\MarketplacePayoutController::class, 'cancel'])->name('cancel');
+            Route::post('/profile/update', [\App\Http\Controllers\MarketplacePayoutController::class, 'updateProfile'])->name('profile.update');
+        });
+    });
+});
+
 // Wave routes
 Wave::routes();

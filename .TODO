@@ -1,0 +1,2304 @@
+# WHMCS FEATURE PARITY - COMPREHENSIVE TODO LIST
+# Platform: EvenLeads (Wave-based SaaS)
+# Goal: Achieve full WHMCS feature parity
+# Total Estimated Time: 24-32 weeks (6-8 months)
+
+================================================================================
+LEGEND:
+[P0] = CRITICAL - Must have for production
+[P1] = HIGH - Important for competitive parity
+[P2] = MEDIUM - Nice to have, can be phased
+[P3] = LOW - Optional enhancements
+
+Effort: [XS=1-3d] [S=4-7d] [M=1-2w] [L=3-4w] [XL=5-8w]
+================================================================================
+
+## PHASE 1: CRITICAL FOUNDATION (10-12 weeks)
+## These features are essential for any billing/SaaS platform
+
+### 1.1 INVOICE SYSTEM [P0] [L: 3-4 weeks] ⚠️ MISSING
+================================================================================
+
+**MODELS TO CREATE:**
+□ Create Invoice model
+  Location: /app/Models/Invoice.php
+  Fields:
+    - id, user_id, invoice_number (auto-generated), status
+    - subtotal, tax_amount, total, currency
+    - issue_date, due_date, paid_date
+    - notes, terms, payment_method
+    - pdf_path, sent_at
+  Statuses: draft, sent, paid, overdue, cancelled, refunded
+  Relationships: belongsTo(User), hasMany(InvoiceLineItem), hasMany(Payment)
+
+□ Create InvoiceLineItem model
+  Location: /app/Models/InvoiceLineItem.php
+  Fields:
+    - id, invoice_id, description, quantity, unit_price
+    - tax_rate, tax_amount, total, item_type
+    - related_id (for subscriptions, marketplace items, etc.)
+  Relationships: belongsTo(Invoice)
+
+□ Create Payment model
+  Location: /app/Models/Payment.php
+  Fields:
+    - id, invoice_id, user_id, amount, currency
+    - payment_method, transaction_id, status
+    - payment_date, gateway (stripe, paddle, manual, etc.)
+    - gateway_response, notes
+  Statuses: pending, completed, failed, refunded
+  Relationships: belongsTo(Invoice), belongsTo(User)
+
+□ Create InvoiceTemplate model
+  Location: /app/Models/InvoiceTemplate.php
+  Fields:
+    - id, name, html_content, is_default
+    - header_html, footer_html, css_styles
+
+□ Create TaxRate model
+  Location: /app/Models/TaxRate.php
+  Fields:
+    - id, name, rate_percentage, country, state
+    - is_compound, is_active
+  Example: VAT 20%, GST 10%, Sales Tax 8.5%
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_invoices_table.php
+□ 2025_XX_XX_create_invoice_line_items_table.php
+□ 2025_XX_XX_create_payments_table.php
+□ 2025_XX_XX_create_invoice_templates_table.php
+□ 2025_XX_XX_create_tax_rates_table.php
+
+**CONTROLLERS TO CREATE:**
+□ InvoiceController
+  Location: /app/Http/Controllers/InvoiceController.php
+  Methods:
+    - index() - List invoices
+    - show($invoice) - View invoice
+    - generate() - Generate invoice from subscription
+    - download($invoice) - Download PDF
+    - pay($invoice) - Initiate payment
+    - sendReminder($invoice) - Send payment reminder
+    - markPaid($invoice) - Manually mark as paid
+    - refund($invoice) - Process refund
+
+□ AdminInvoiceController
+  Location: /app/Http/Controllers/Admin/InvoiceController.php
+  Methods:
+    - create() - Create manual invoice
+    - edit($invoice) - Edit draft invoice
+    - delete($invoice) - Delete invoice
+    - bulkEmail() - Send bulk invoice emails
+
+**SERVICES TO CREATE:**
+□ InvoiceGeneratorService
+  Location: /app/Services/InvoiceGeneratorService.php
+  Purpose: Generate invoices from subscriptions, marketplace purchases
+  Methods:
+    - generateFromSubscription($subscription)
+    - generateFromPurchase($purchase)
+    - calculateTotals($lineItems, $taxRate)
+    - assignInvoiceNumber()
+
+□ InvoicePDFService
+  Location: /app/Services/InvoicePDFService.php
+  Purpose: Generate PDF invoices using DOMPDF or similar
+  Methods:
+    - generatePDF($invoice)
+    - getTemplate($invoice)
+    - savePDF($invoice, $pdf)
+
+□ PaymentProcessorService
+  Location: /app/Services/PaymentProcessorService.php
+  Purpose: Handle payments across multiple gateways
+  Methods:
+    - processPayment($invoice, $paymentMethod)
+    - recordPayment($invoice, $transactionId, $amount)
+    - refundPayment($payment, $reason)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ InvoiceResource
+  Location: /app/Filament/Resources/InvoiceResource.php
+  Features:
+    - List view with filters (status, date range, user)
+    - Create/edit form for manual invoices
+    - Bulk actions (send email, mark paid, export)
+    - View invoice details
+    - Generate PDF action
+    - Send reminder action
+    - Record payment action
+
+□ PaymentResource
+  Location: /app/Filament/Resources/PaymentResource.php
+  Features:
+    - List all payments
+    - Record manual payment
+    - Refund payment
+    - View transaction details
+
+□ TaxRateResource
+  Location: /app/Filament/Resources/TaxRateResource.php
+  Features:
+    - Manage tax rates by region
+    - Enable/disable tax rates
+    - Set compound tax rules
+
+**VIEWS TO CREATE:**
+□ Invoice list view
+  Location: /resources/themes/anchor/pages/invoices/index.blade.php
+□ Invoice detail view
+  Location: /resources/themes/anchor/pages/invoices/show.blade.php
+□ Invoice PDF template
+  Location: /resources/views/invoices/pdf-template.blade.php
+
+**COMMANDS TO CREATE:**
+□ GenerateRecurringInvoices
+  Location: /app/Console/Commands/GenerateRecurringInvoices.php
+  Purpose: Generate invoices for subscription renewals
+  Schedule: Daily
+
+□ SendInvoiceReminders
+  Location: /app/Console/Commands/SendInvoiceReminders.php
+  Purpose: Send reminders for overdue invoices
+  Schedule: Daily
+
+**MAIL CLASSES TO CREATE:**
+□ InvoiceCreatedMail
+□ InvoicePaymentReminderMail
+□ InvoiceOverdueMail
+□ InvoiceRefundedMail
+□ PaymentReceivedMail
+
+**ROUTES TO ADD:**
+□ GET /invoices - List invoices
+□ GET /invoices/{invoice} - View invoice
+□ GET /invoices/{invoice}/download - Download PDF
+□ POST /invoices/{invoice}/pay - Initiate payment
+□ GET /admin/invoices - Admin invoice management
+
+**INTEGRATION POINTS:**
+□ Connect to existing Stripe webhook (create invoice on subscription renewal)
+□ Connect to existing Paddle webhook (create invoice on transaction)
+□ Create invoice on marketplace purchase
+□ Update subscription billing cycle dates after invoice payment
+
+**TESTING:**
+□ Unit tests for invoice calculation
+□ Feature tests for invoice generation
+□ Test PDF generation
+□ Test payment processing
+□ Test webhook invoice creation
+
+
+### 1.2 SUPPORT TICKET SYSTEM [P0] [XL: 4-5 weeks] ⚠️ COMPLETELY MISSING
+================================================================================
+
+**MODELS TO CREATE:**
+□ Create Ticket model
+  Location: /app/Models/Ticket.php
+  Fields:
+    - id, user_id, department_id, assigned_to (staff user)
+    - subject, status, priority, category_id
+    - created_at, updated_at, closed_at
+    - last_reply_at, first_response_at
+    - sla_due_at, rating, feedback
+  Statuses: open, pending, on_hold, resolved, closed
+  Priorities: low, medium, high, critical
+  Relationships: belongsTo(User), belongsTo(Department), hasMany(TicketReply)
+
+□ Create TicketReply model
+  Location: /app/Models/TicketReply.php
+  Fields:
+    - id, ticket_id, user_id, message
+    - is_staff_reply, is_private (internal note)
+    - created_at, attachments (JSON array)
+  Relationships: belongsTo(Ticket), belongsTo(User)
+
+□ Create TicketDepartment model
+  Location: /app/Models/TicketDepartment.php
+  Fields:
+    - id, name, email, is_active
+    - auto_assign_to (user_id), sla_hours
+    - description
+  Example: Technical Support, Billing, Sales
+
+□ Create TicketCategory model
+  Location: /app/Models/TicketCategory.php
+  Fields:
+    - id, name, department_id, is_active
+  Example: Bug Report, Feature Request, Account Issue
+
+□ Create CannedResponse model
+  Location: /app/Models/CannedResponse.php
+  Fields:
+    - id, title, content, category_id
+    - is_active, created_by
+  Purpose: Pre-written responses for common issues
+
+□ Create TicketAttachment model
+  Location: /app/Models/TicketAttachment.php
+  Fields:
+    - id, ticket_reply_id, file_name, file_path
+    - file_size, mime_type
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_tickets_table.php
+□ 2025_XX_XX_create_ticket_replies_table.php
+□ 2025_XX_XX_create_ticket_departments_table.php
+□ 2025_XX_XX_create_ticket_categories_table.php
+□ 2025_XX_XX_create_canned_responses_table.php
+□ 2025_XX_XX_create_ticket_attachments_table.php
+
+**CONTROLLERS TO CREATE:**
+□ TicketController
+  Location: /app/Http/Controllers/TicketController.php
+  Methods:
+    - index() - List user's tickets
+    - create() - Create ticket form
+    - store() - Submit new ticket
+    - show($ticket) - View ticket and replies
+    - reply($ticket) - Add reply to ticket
+    - close($ticket) - Close ticket
+    - rate($ticket) - Rate ticket resolution
+
+□ AdminTicketController
+  Location: /app/Http/Controllers/Admin/TicketController.php
+  Methods:
+    - index() - List all tickets
+    - assign($ticket, $userId) - Assign ticket
+    - changeStatus($ticket, $status) - Update status
+    - changePriority($ticket, $priority) - Update priority
+    - addInternalNote($ticket) - Add private note
+    - merge($ticket1, $ticket2) - Merge tickets
+    - bulkAssign() - Bulk assign tickets
+    - bulkClose() - Bulk close tickets
+
+**SERVICES TO CREATE:**
+□ TicketService
+  Location: /app/Services/TicketService.php
+  Methods:
+    - createTicket($userId, $data)
+    - addReply($ticket, $userId, $message, $isStaff)
+    - assignTicket($ticket, $staffId)
+    - closeTicket($ticket, $resolution)
+    - calculateSLA($ticket)
+    - checkSLABreach($ticket)
+
+□ TicketEmailService
+  Location: /app/Services/TicketEmailService.php
+  Purpose: Handle email piping (receive tickets via email)
+  Methods:
+    - parseIncomingEmail($email)
+    - extractTicketId($subject)
+    - createTicketFromEmail($from, $subject, $body)
+    - addReplyFromEmail($ticketId, $from, $body)
+
+□ TicketNotificationService
+  Location: /app/Services/TicketNotificationService.php
+  Methods:
+    - notifyUserNewTicket($ticket)
+    - notifyUserReply($ticket, $reply)
+    - notifyStaffNewTicket($ticket)
+    - notifyStaffAssignment($ticket, $staff)
+    - notifySLABreach($ticket)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ TicketResource
+  Location: /app/Filament/Resources/TicketResource.php
+  Features:
+    - List view with filters (status, priority, department, assigned)
+    - View ticket thread
+    - Reply to ticket
+    - Assign ticket
+    - Change status/priority
+    - Add internal notes
+    - View SLA status
+    - Bulk actions (assign, close, change status)
+    - Badge showing open tickets count
+
+□ TicketDepartmentResource
+  Location: /app/Filament/Resources/TicketDepartmentResource.php
+  Features:
+    - Manage departments
+    - Set SLA hours
+    - Assign default staff
+
+□ CannedResponseResource
+  Location: /app/Filament/Resources/CannedResponseResource.php
+  Features:
+    - Create/edit canned responses
+    - Categorize responses
+    - Use in ticket replies
+
+**VIEWS TO CREATE:**
+□ Ticket list view
+  Location: /resources/themes/anchor/pages/tickets/index.blade.php
+□ Create ticket form
+  Location: /resources/themes/anchor/pages/tickets/create.blade.php
+□ Ticket thread view
+  Location: /resources/themes/anchor/pages/tickets/show.blade.php
+□ Ticket reply component
+  Location: /resources/themes/anchor/components/ticket-reply.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ TicketList component
+  Location: /app/Livewire/Tickets/TicketList.php
+□ TicketThread component
+  Location: /app/Livewire/Tickets/TicketThread.php
+□ TicketReplyForm component
+  Location: /app/Livewire/Tickets/TicketReplyForm.php
+
+**COMMANDS TO CREATE:**
+□ CheckTicketSLA
+  Location: /app/Console/Commands/CheckTicketSLA.php
+  Purpose: Check for SLA breaches and send alerts
+  Schedule: Hourly
+
+□ ProcessTicketEmails
+  Location: /app/Console/Commands/ProcessTicketEmails.php
+  Purpose: Process incoming emails for ticket piping
+  Schedule: Every 5 minutes
+
+□ AutoCloseInactiveTickets
+  Location: /app/Console/Commands/AutoCloseInactiveTickets.php
+  Purpose: Close tickets with no reply for X days
+  Schedule: Daily
+
+**MAIL CLASSES TO CREATE:**
+□ TicketCreatedMail
+□ TicketReplyMail
+□ TicketAssignedMail
+□ TicketStatusChangedMail
+□ TicketClosedMail
+□ TicketSLABreachMail
+
+**ROUTES TO ADD:**
+□ GET /tickets - List tickets
+□ POST /tickets - Create ticket
+□ GET /tickets/{ticket} - View ticket
+□ POST /tickets/{ticket}/reply - Add reply
+□ POST /tickets/{ticket}/close - Close ticket
+□ POST /tickets/{ticket}/rate - Rate ticket
+□ GET /admin/tickets - Admin ticket management
+
+**INTEGRATION POINTS:**
+□ Email piping setup (IMAP/POP3 or webhook)
+□ File upload for attachments
+□ Real-time notifications (optional)
+□ SLA tracking and alerts
+
+**TESTING:**
+□ Unit tests for ticket creation
+□ Feature tests for ticket workflow
+□ Test email piping
+□ Test SLA calculations
+□ Test staff assignment
+
+
+### 1.3 ENHANCED PRODUCT/SERVICE MANAGEMENT [P0] [M: 2-3 weeks]
+================================================================================
+**NOTE:** Marketplace exists, but need standard product management for services
+
+**MODELS TO CREATE:**
+□ Create Product model
+  Location: /app/Models/Product.php
+  Fields:
+    - id, name, description, product_type
+    - category_id, price, billing_cycle
+    - setup_fee, trial_days, status
+    - welcome_email_id, provisioning_module
+    - stock_quantity, is_featured
+  Types: hosting, domain, service, license, addon
+  Statuses: active, inactive, retired
+  Relationships: belongsTo(Category), hasMany(ProductOption), hasMany(UserService)
+
+□ Create ProductOption model
+  Location: /app/Models/ProductOption.php
+  Fields:
+    - id, product_id, name, option_type
+    - values (JSON), pricing_method
+    - is_required
+  Types: dropdown, radio, quantity, yes/no
+  Pricing: one_time, recurring, percentage
+
+□ Create ProductAddon model
+  Location: /app/Models/ProductAddon.php
+  Fields:
+    - id, name, description, price
+    - billing_cycle, product_id (parent product)
+  Example: Extra storage, Premium support
+
+□ Create UserService model
+  Location: /app/Models/UserService.php
+  Fields:
+    - id, user_id, product_id, status
+    - domain, username, password
+    - next_due_date, termination_date
+    - subscription_id (link to Wave subscription)
+    - selected_options (JSON)
+  Statuses: pending, active, suspended, terminated, cancelled
+  Relationships: belongsTo(User), belongsTo(Product), hasMany(ServiceAddon)
+
+□ Create ServiceAddon model (link UserService to ProductAddon)
+  Location: /app/Models/ServiceAddon.php
+  Fields:
+    - id, user_service_id, product_addon_id
+    - status, next_billing_date
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_products_table.php
+□ 2025_XX_XX_create_product_options_table.php
+□ 2025_XX_XX_create_product_addons_table.php
+□ 2025_XX_XX_create_user_services_table.php
+□ 2025_XX_XX_create_service_addons_table.php
+
+**CONTROLLERS TO CREATE:**
+□ ProductController
+  Location: /app/Http/Controllers/ProductController.php
+  Methods:
+    - index() - List available products
+    - show($product) - View product details
+    - configure($product) - Configure product options
+    - order($product) - Add to cart / checkout
+
+□ ServiceController
+  Location: /app/Http/Controllers/ServiceController.php
+  Methods:
+    - index() - List user's services
+    - show($service) - View service details
+    - upgrade($service) - Upgrade service
+    - cancel($service) - Cancel service
+    - manageAddons($service) - Add/remove addons
+
+**FILAMENT RESOURCES TO CREATE:**
+□ ProductResource
+  Location: /app/Filament/Resources/ProductResource.php
+  Features:
+    - Create/edit products
+    - Manage pricing tiers
+    - Configure options
+    - Set billing cycles
+    - Stock management
+    - Featured products
+
+□ UserServiceResource
+  Location: /app/Filament/Resources/UserServiceResource.php
+  Features:
+    - View all services
+    - Activate/suspend services
+    - Terminate services
+    - View service details
+
+**VIEWS TO CREATE:**
+□ Product catalog
+  Location: /resources/themes/anchor/pages/products/index.blade.php
+□ Product detail/configure
+  Location: /resources/themes/anchor/pages/products/show.blade.php
+□ User services list
+  Location: /resources/themes/anchor/pages/services/index.blade.php
+□ Service detail
+  Location: /resources/themes/anchor/pages/services/show.blade.php
+
+**COMMANDS TO CREATE:**
+□ ProcessServiceRenewals
+  Location: /app/Console/Commands/ProcessServiceRenewals.php
+  Purpose: Generate invoices and renew services
+  Schedule: Daily
+
+□ SuspendOverdueServices
+  Location: /app/Console/Commands/SuspendOverdueServices.php
+  Purpose: Suspend services with overdue invoices
+  Schedule: Daily
+
+□ TerminateServices
+  Location: /app/Console/Commands/TerminateServices.php
+  Purpose: Terminate services after suspension period
+  Schedule: Daily
+
+**MAIL CLASSES TO CREATE:**
+□ ServiceActivatedMail
+□ ServiceSuspendedMail
+□ ServiceTerminatedMail
+□ ServiceRenewalReminderMail
+
+**ROUTES TO ADD:**
+□ GET /products - Browse products
+□ GET /products/{product} - Product details
+□ POST /products/{product}/order - Place order
+□ GET /services - List user services
+□ GET /services/{service} - Service details
+□ POST /services/{service}/upgrade - Upgrade
+□ POST /services/{service}/cancel - Cancel
+
+**INTEGRATION POINTS:**
+□ Link to existing subscription system
+□ Generate invoices for service renewals
+□ Automate service lifecycle (pending → active → suspended → terminated)
+
+
+### 1.4 CLIENT PORTAL ENHANCEMENTS [P1] [M: 2-3 weeks]
+================================================================================
+**NOTE:** Basic portal exists, needs expansion
+
+**FEATURES TO ADD:**
+□ Dashboard improvements
+  Location: /resources/themes/anchor/pages/dashboard/index.blade.php
+  Add:
+    - Quick stats (services, invoices, tickets)
+    - Recent activity timeline
+    - Upcoming renewals
+    - Overdue invoices alert
+    - Quick actions (create ticket, pay invoice)
+
+□ Invoice management section
+  Location: Already partially handled, expand with:
+    - Invoice list with filters
+    - Payment history
+    - Download PDF
+    - Pay invoice button
+    - Auto-pay settings
+
+□ Service management section
+  Add:
+    - List all services
+    - Service status indicators
+    - Quick actions (upgrade, cancel, manage)
+    - Usage statistics
+    - Renewal dates
+
+□ Support section
+  Add:
+    - Create ticket button
+    - Ticket list with status
+    - View ticket thread
+    - Knowledge base access
+
+□ Billing section
+  Add:
+    - Payment methods management
+    - Billing address
+    - Credit balance
+    - Auto-renewal settings
+    - Tax information
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ DashboardStats component
+  Location: /app/Livewire/Dashboard/DashboardStats.php
+□ UpcomingRenewals component
+  Location: /app/Livewire/Dashboard/UpcomingRenewals.php
+□ RecentInvoices component
+  Location: /app/Livewire/Dashboard/RecentInvoices.php
+□ QuickActions component
+  Location: /app/Livewire/Dashboard/QuickActions.php
+
+
+================================================================================
+## PHASE 2: AUTOMATION & OPERATIONS (4-6 weeks)
+## Features to streamline operations and reduce manual work
+================================================================================
+
+### 2.1 AUTOMATION SYSTEM [P1] [M: 2-3 weeks]
+================================================================================
+
+**COMMANDS TO CREATE/ENHANCE:**
+□ GenerateRecurringInvoices (covered in 1.1)
+□ SendInvoiceReminders (covered in 1.1)
+□ ProcessServiceRenewals (covered in 1.3)
+□ SuspendOverdueServices (covered in 1.3)
+□ TerminateServices (covered in 1.3)
+□ CheckTicketSLA (covered in 1.2)
+
+□ SendRenewalReminders
+  Location: /app/Console/Commands/SendRenewalReminders.php
+  Purpose: Send reminders before service renewal
+  Schedule: Daily
+  Send at: 30 days, 14 days, 7 days, 1 day before renewal
+
+□ ProcessRefunds
+  Location: /app/Console/Commands/ProcessRefunds.php
+  Purpose: Process pending refund requests
+  Schedule: Hourly
+
+□ CleanupExpiredData
+  Location: /app/Console/Commands/CleanupExpiredData.php
+  Purpose: Clean up old logs, temporary files
+  Schedule: Weekly
+
+□ GenerateMonthlyReports
+  Location: /app/Console/Commands/GenerateMonthlyReports.php
+  Purpose: Generate and email monthly reports to admins
+  Schedule: Monthly (1st of month)
+
+□ BackupDatabase
+  Location: /app/Console/Commands/BackupDatabase.php
+  Purpose: Backup database to S3 or local storage
+  Schedule: Daily
+
+**SERVICES TO CREATE:**
+□ AutomationService
+  Location: /app/Services/AutomationService.php
+  Purpose: Centralize automation logic
+  Methods:
+    - processInvoiceLifecycle($invoice)
+    - processServiceLifecycle($service)
+    - sendScheduledEmails()
+
+**EVENTS TO CREATE:**
+□ InvoiceCreated event
+□ InvoiceOverdue event
+□ InvoicePaid event
+□ ServiceActivated event
+□ ServiceSuspended event
+□ ServiceTerminated event
+□ TicketCreated event
+□ TicketResolved event
+□ PaymentReceived event
+□ PaymentFailed event
+
+**LISTENERS TO CREATE:**
+□ SendInvoiceCreatedNotification
+□ GenerateInvoicePDF
+□ RecordPaymentInInvoice
+□ ActivateServiceAfterPayment
+□ SuspendServiceAfterNonPayment
+□ NotifyTicketCreated
+□ UpdateTicketMetrics
+
+
+### 2.2 ENHANCED EMAIL SYSTEM [P1] [S: 1-2 weeks]
+================================================================================
+
+**MAIL TEMPLATES TO CREATE:**
+□ Invoice emails (covered in 1.1)
+□ Ticket emails (covered in 1.2)
+□ Service emails (covered in 1.3)
+
+□ Payment reminder templates
+  - 7 days before due
+  - 3 days before due
+  - 1 day before due
+  - Day of due date
+  - 7 days overdue
+  - 14 days overdue
+  - 30 days overdue
+
+□ Service lifecycle templates
+  - Welcome email
+  - Activation email
+  - Suspension warning (3 days before)
+  - Suspension notice
+  - Termination warning
+  - Termination notice
+
+□ Account management templates
+  - Password reset
+  - Email verification
+  - Account suspended
+  - Account reactivated
+
+**MODELS TO CREATE:**
+□ EmailTemplate model
+  Location: /app/Models/EmailTemplate.php
+  Fields:
+    - id, name, subject, body_html, body_text
+    - type, is_active, variables (JSON)
+  Types: invoice, ticket, service, account, custom
+
+□ EmailLog model
+  Location: /app/Models/EmailLog.php
+  Fields:
+    - id, user_id, email_template_id, subject
+    - recipient, sent_at, opened_at, clicked_at
+    - status (sent, failed, bounced)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ EmailTemplateResource
+  Location: /app/Filament/Resources/EmailTemplateResource.php
+  Features:
+    - Edit email templates
+    - Preview templates
+    - Variable placeholder documentation
+    - Test send functionality
+
+□ EmailLogResource
+  Location: /app/Filament/Resources/EmailLogResource.php
+  Features:
+    - View sent emails
+    - Track opens/clicks
+    - Resend failed emails
+
+
+### 2.3 REPORTING & ANALYTICS [P1] [M: 2-3 weeks]
+================================================================================
+
+**REPORTS TO IMPLEMENT:**
+
+□ Financial Reports:
+  - Income report (by period, by product, by client)
+  - Expense tracking (optional)
+  - Revenue forecast
+  - Profit/loss statement
+  - Tax reports (VAT/GST collected)
+  - Payment method breakdown
+
+□ Sales Reports:
+  - Sales by product
+  - Sales by period (daily, weekly, monthly, yearly)
+  - Top selling products
+  - Conversion rates
+  - Abandoned carts (if applicable)
+
+□ Client Reports:
+  - New clients by period
+  - Client lifetime value
+  - Churn rate
+  - Client retention
+  - Client acquisition cost
+  - Client segmentation
+
+□ Invoice Reports:
+  - Invoice aging (30, 60, 90+ days)
+  - Overdue invoices
+  - Payment collection rates
+  - Average days to payment
+  - Write-off reports
+
+□ Service Reports:
+  - Active services by product
+  - Service churn rate
+  - Upgrade/downgrade trends
+  - Service usage statistics
+
+□ Ticket Reports:
+  - Tickets by status/priority/department
+  - Average resolution time
+  - First response time
+  - Customer satisfaction scores
+  - SLA compliance
+
+**CONTROLLERS TO CREATE:**
+□ ReportController
+  Location: /app/Http/Controllers/Admin/ReportController.php
+  Methods:
+    - index() - Report dashboard
+    - income() - Income report
+    - sales() - Sales report
+    - clients() - Client analytics
+    - invoices() - Invoice aging
+    - tickets() - Support metrics
+    - export($reportType, $format) - Export to CSV/PDF
+
+**SERVICES TO CREATE:**
+□ ReportingService
+  Location: /app/Services/ReportingService.php
+  Methods:
+    - generateIncomeReport($startDate, $endDate)
+    - generateSalesReport($startDate, $endDate)
+    - calculateClientMetrics()
+    - getInvoiceAging()
+    - getTicketMetrics()
+
+□ ExportService
+  Location: /app/Services/ExportService.php
+  Methods:
+    - exportToCSV($data, $headers)
+    - exportToPDF($data, $template)
+    - exportToExcel($data)
+
+**FILAMENT RESOURCES/PAGES TO CREATE:**
+□ ReportsPage
+  Location: /app/Filament/Pages/Reports.php
+  Features:
+    - Report dashboard with widgets
+    - Date range selector
+    - Report type selector
+    - Export buttons
+    - Charts and graphs
+
+**VIEWS TO CREATE:**
+□ Reports dashboard
+  Location: /resources/views/admin/reports/index.blade.php
+□ Income report view
+  Location: /resources/views/admin/reports/income.blade.php
+□ Sales report view
+  Location: /resources/views/admin/reports/sales.blade.php
+
+
+================================================================================
+## PHASE 3: ADVANCED FEATURES (6-8 weeks)
+## Features for competitive advantage and scalability
+================================================================================
+
+### 3.1 ADVANCED CLIENT MANAGEMENT [P2] [M: 2-3 weeks]
+================================================================================
+
+**FEATURES TO ADD:**
+□ Client groups/segments
+  - Create custom client groups
+  - Apply group-based pricing
+  - Send group-based emails
+  - Group-based reports
+
+□ Client notes system
+  - Add internal notes to client accounts
+  - Track client communication history
+  - Flag important clients
+  - Client timeline view
+
+□ Client credit system
+  - Add/subtract account credits
+  - Apply credits to invoices
+  - Credit expiration dates
+  - Credit history
+
+□ Multiple contacts per client
+  - Add additional contacts (billing, technical)
+  - Set permissions per contact
+  - Contact roles (owner, billing, technical)
+
+□ Client activity audit trail
+  - Log all client actions
+  - Track login history
+  - Service changes
+  - Invoice payments
+  - Support tickets
+
+**MODELS TO CREATE:**
+□ ClientGroup model
+□ ClientNote model
+□ ClientContact model
+□ ClientCredit model
+□ ClientActivity model
+
+**CONTROLLERS TO CREATE:**
+□ ClientGroupController
+□ ClientNoteController
+□ ClientContactController
+□ ClientCreditController
+
+
+### 3.2 ADVANCED ADMIN FEATURES [P2] [M: 2-3 weeks]
+================================================================================
+
+**BULK OPERATIONS:**
+□ Bulk invoice generation
+□ Bulk email sending
+□ Bulk service activation/suspension
+□ Bulk client actions (group assignment, credit adjustment)
+□ Bulk ticket assignment/closure
+□ Bulk product updates
+
+**SYSTEM TOOLS:**
+□ Activity log viewer
+  - Filter by user, action, date
+  - Export activity logs
+  - Search logs
+
+□ System health dashboard
+  - Queue status
+  - Failed jobs
+  - Database size
+  - Storage usage
+  - Email sending status
+  - Webhook status
+
+□ Configuration wizard
+  - Step-by-step setup for new installation
+  - Email configuration
+  - Payment gateway setup
+  - Tax settings
+  - Invoice templates
+
+□ Data import/export tools
+  - Import clients from CSV
+  - Import products from CSV
+  - Export data to CSV/Excel
+  - Backup/restore functionality
+
+**FILAMENT PAGES TO CREATE:**
+□ BulkOperationsPage
+□ SystemHealthPage
+□ DataImportExportPage
+□ ActivityLogPage
+
+
+### 3.3 ADVANCED INTEGRATIONS [P2] [M: 2-3 weeks]
+================================================================================
+
+**PAYMENT GATEWAYS:**
+□ Add PayPal integration
+□ Add additional Stripe features:
+  - ACH/bank transfers
+  - SEPA Direct Debit
+  - Alipay/WeChat Pay
+□ Add cryptocurrency payment option
+□ Add wire transfer / bank deposit tracking
+
+**ACCOUNTING SOFTWARE:**
+□ QuickBooks integration
+  - Sync invoices
+  - Sync payments
+  - Sync clients
+□ Xero integration
+□ FreshBooks integration
+
+**EMAIL MARKETING:**
+□ Mailchimp integration
+  - Sync clients to lists
+  - Segment by product
+□ SendGrid integration
+□ Constant Contact integration
+
+**CRM INTEGRATION:**
+□ Salesforce integration
+□ HubSpot integration
+□ Pipedrive integration
+
+**COMMUNICATION:**
+□ SMS notifications (Twilio)
+  - Invoice reminders
+  - Ticket updates
+  - Service alerts
+□ Slack notifications
+  - New tickets
+  - Payment received
+  - Service issues
+
+**DOMAIN REGISTRARS:**
+□ Generic domain registrar API integration
+□ Domain availability check
+□ Domain registration
+□ Domain renewal automation
+□ WHOIS lookup
+□ DNS management
+
+**HOSTING PROVIDERS:**
+□ Generic hosting provider API integration
+□ Account provisioning
+□ Account suspension/termination
+□ Usage statistics
+
+**MODELS TO CREATE:**
+□ Integration model
+□ IntegrationLog model
+□ WebhookEndpoint model
+
+**SERVICES TO CREATE:**
+□ IntegrationService
+□ WebhookService
+□ DomainService
+□ HostingProvisioningService
+
+
+### 3.4 ADVANCED PRODUCT FEATURES [P2] [M: 1-2 weeks]
+================================================================================
+
+**FEATURES TO ADD:**
+□ Product bundles/packages
+  - Bundle multiple products
+  - Discounted bundle pricing
+  - Bundle upgrades
+
+□ Product trial periods
+  - Free trial setup
+  - Trial to paid conversion
+  - Trial reminders
+
+□ Product upsells/cross-sells
+  - Related products
+  - Upgrade paths
+  - Addon recommendations
+
+□ Product lifecycle management
+  - Product deprecation workflow
+  - End-of-life notices
+  - Migration paths to new products
+
+□ Volume/tiered pricing
+  - Price breaks at quantities
+  - Bulk discounts
+  - Enterprise pricing
+
+□ Promotional pricing
+  - Coupon codes
+  - Time-limited discounts
+  - First-time customer discounts
+
+**MODELS TO CREATE:**
+□ ProductBundle model
+□ PromotionCode model
+□ ProductUpsell model
+
+**CONTROLLERS TO CREATE:**
+□ PromotionController
+□ BundleController
+
+
+### 3.5 KNOWLEDGE BASE / DOCUMENTATION [P2] [S: 1-2 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ Knowledge base system
+  - Article categories
+  - Article tags
+  - Search functionality
+  - Popular articles
+  - Related articles
+
+□ Documentation system
+  - API documentation
+  - User guides
+  - Video tutorials
+  - FAQ system (already partially exists)
+
+□ Client-facing features
+  - Search knowledge base
+  - Rate articles (helpful/not helpful)
+  - Comment on articles
+  - Request new articles
+
+**MODELS TO CREATE:**
+□ KnowledgeBaseArticle model
+  Location: /app/Models/KnowledgeBaseArticle.php
+  Fields:
+    - id, title, content, category_id
+    - tags, views, helpful_count, not_helpful_count
+    - is_published, is_featured
+
+□ ArticleCategory model
+□ ArticleTag model
+□ ArticleView model (analytics)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ KnowledgeBaseArticleResource
+  Features:
+    - Create/edit articles
+    - Rich text editor
+    - SEO fields
+    - Publish/unpublish
+    - View analytics
+
+**VIEWS TO CREATE:**
+□ Knowledge base home
+  Location: /resources/themes/anchor/pages/kb/index.blade.php
+□ Article view
+  Location: /resources/themes/anchor/pages/kb/article.blade.php
+□ Search results
+  Location: /resources/themes/anchor/pages/kb/search.blade.php
+
+
+### 3.6 AFFILIATE PROGRAM [P3] [M: 2-3 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ Affiliate registration
+□ Unique referral links
+□ Commission tracking
+□ Commission rates (percentage, fixed)
+□ Affiliate dashboard
+□ Payout management
+□ Affiliate statistics
+
+**MODELS TO CREATE:**
+□ Affiliate model
+□ AffiliateReferral model
+□ AffiliateCommission model
+□ AffiliatePayout model
+
+**CONTROLLERS TO CREATE:**
+□ AffiliateController
+□ AffiliateReferralController
+
+
+### 3.7 ADVANCED MARKETPLACE FEATURES [P3] [M: 1-2 weeks]
+================================================================================
+**NOTE:** Marketplace already exists, these are enhancements
+
+**FEATURES TO ADD:**
+□ Subscription-based marketplace items
+  - Monthly/yearly recurring plugins
+  - Automatic renewal
+  - Update access tied to subscription
+
+□ Marketplace item bundles
+  - Package multiple items
+  - Bundle discount pricing
+
+□ Affiliate program for marketplace
+  - Creators can promote other items
+  - Earn commission on referrals
+
+□ Advanced analytics for creators
+  - Traffic sources
+  - Conversion rates
+  - Customer demographics
+  - Revenue forecasting
+
+□ Item update notifications
+  - Email subscribers when items update
+  - Changelog RSS feed
+  - Automatic update checker (for installed items)
+
+□ Creator verification program
+  - Verified badge
+  - Background checks
+  - Quality standards
+
+□ Marketplace item demos
+  - Live demo environment
+  - Sandbox testing
+  - Demo video embedding
+
+
+================================================================================
+## PHASE 4: NICE-TO-HAVE FEATURES (4-6 weeks)
+## Optional enhancements for competitive edge
+================================================================================
+
+### 4.1 ADVANCED ANALYTICS & BI [P3] [M: 2-3 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ Custom report builder
+  - Drag-and-drop report designer
+  - Custom queries
+  - Scheduled report generation
+  - Report sharing
+
+□ Dashboard customization
+  - Widget library
+  - Drag-and-drop dashboard builder
+  - Multiple dashboard views
+  - Role-based dashboards
+
+□ Predictive analytics
+  - Churn prediction
+  - Revenue forecasting
+  - Seasonal trends
+  - Anomaly detection
+
+□ Advanced visualizations
+  - Interactive charts
+  - Heatmaps
+  - Funnel analysis
+  - Cohort analysis
+
+
+### 4.2 MULTI-CURRENCY & LOCALIZATION [P3] [M: 2-3 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ Multi-currency support
+  - Multiple pricing per product
+  - Currency conversion
+  - Exchange rate management
+  - Currency auto-detection
+
+□ Multi-language support
+  - Translation management
+  - Client language preference
+  - Localized emails
+  - Localized invoices
+
+□ Regional tax handling
+  - Tax rules by country/state
+  - Automatic tax calculation
+  - Tax exemption handling
+  - Tax reports by region
+
+
+### 4.3 MOBILE APP (API COMPLETION) [P3] [XL: 4-6 weeks]
+================================================================================
+
+**API ENHANCEMENTS:**
+□ Complete mobile-friendly API
+□ Push notification support
+□ Offline mode support
+□ Mobile app authentication (JWT)
+□ Mobile-optimized responses
+
+
+### 4.4 ADVANCED SECURITY FEATURES [P3] [M: 2-3 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ IP whitelisting/blacklisting
+□ Brute force protection (enhanced)
+□ Security audit logs
+□ Suspicious activity detection
+□ Account takeover prevention
+□ CAPTCHA on critical actions
+□ Session management
+□ Password complexity requirements
+□ Password expiration policies
+
+
+### 4.5 WHITE LABEL / RESELLER FEATURES [P3] [L: 3-4 weeks]
+================================================================================
+
+**FEATURES TO IMPLEMENT:**
+□ Reseller accounts
+  - Create sub-accounts
+  - Reseller pricing
+  - Reseller branding
+
+□ White label customization
+  - Custom logo/branding
+  - Custom domain
+  - Custom email templates
+  - Custom invoice templates
+
+□ Multi-tenant support (if not already implemented)
+
+
+================================================================================
+## PHASE 5: MODULAR SYSTEM ARCHITECTURE (12-16 weeks)
+## Build a flexible module system for extensibility
+================================================================================
+
+### 5.1 MODULE SYSTEM INFRASTRUCTURE [P0] [L: 3-4 weeks] ⚠️ CRITICAL
+================================================================================
+**NOTE:** This is the foundation for all other modules and should be implemented first
+
+**FOLDER STRUCTURE TO CREATE:**
+```
+/modules/
+  ├── LicenseSeller/
+  │   ├── Config/
+  │   ├── Database/
+  │   │   ├── Migrations/
+  │   │   └── Seeders/
+  │   ├── Models/
+  │   ├── Http/
+  │   │   └── Controllers/
+  │   ├── Resources/
+  │   │   ├── Filament/
+  │   │   └── Views/
+  │   ├── Routes/
+  │   │   ├── web.php
+  │   │   └── api.php
+  │   ├── Services/
+  │   ├── Providers/
+  │   │   └── LicenseSellerServiceProvider.php
+  │   ├── module.json
+  │   └── README.md
+  ├── WebCredits/
+  ├── ConfigureProduct/
+  ├── EvenLeads/ (move existing)
+  ├── Marketplace/ (move existing)
+  └── ... (other modules)
+```
+
+**MODELS TO CREATE:**
+□ Create Module model
+  Location: /app/Models/Module.php
+  Fields:
+    - id, name, slug, version, description
+    - is_enabled, is_core (cannot be disabled)
+    - author, provider_class, settings (JSON)
+    - installed_at, updated_at
+    - required_modules (JSON array), conflicts_with (JSON)
+  Purpose: Track installed modules and their state
+  Relationships: hasMany(ModulePermission), hasMany(ModuleSetting)
+
+□ Create ModulePermission model
+  Location: /app/Models/ModulePermission.php
+  Fields:
+    - id, module_id, permission_name, display_name
+    - description, group_name
+  Purpose: Store module-specific permissions
+  Relationships: belongsTo(Module)
+
+□ Create ModuleSetting model
+  Location: /app/Models/ModuleSetting.php
+  Fields:
+    - id, module_id, key, value, type
+    - is_public, validation_rules
+  Types: text, number, boolean, json, select, textarea
+  Purpose: Store per-module configuration
+  Relationships: belongsTo(Module)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_modules_table.php
+□ 2025_XX_XX_create_module_permissions_table.php
+□ 2025_XX_XX_create_module_settings_table.php
+
+**SERVICES TO CREATE:**
+□ ModuleService
+  Location: /app/Services/ModuleService.php
+  Methods:
+    - installModule($zipPath) - Extract and install module
+    - uninstallModule($moduleSlug) - Remove module
+    - enableModule($moduleSlug) - Enable module
+    - disableModule($moduleSlug) - Disable module
+    - updateModule($moduleSlug, $zipPath) - Update module version
+    - getModuleInfo($moduleSlug) - Get module metadata
+    - validateModule($path) - Check module structure
+    - runMigrations($moduleSlug) - Run module migrations
+    - rollbackMigrations($moduleSlug) - Rollback module migrations
+    - registerRoutes($moduleSlug) - Load module routes
+    - registerPermissions($moduleSlug) - Register module permissions
+    - getInstalledModules() - List all installed modules
+    - checkDependencies($moduleSlug) - Verify dependencies
+
+□ ModuleLoaderService
+  Location: /app/Services/ModuleLoaderService.php
+  Methods:
+    - loadAllModules() - Load enabled modules on boot
+    - discoverModules() - Scan modules folder
+    - autoloadModule($moduleSlug) - Autoload module classes
+    - registerServiceProvider($provider) - Register module provider
+
+**PROVIDERS TO CREATE:**
+□ ModuleServiceProvider
+  Location: /app/Providers/ModuleServiceProvider.php
+  Purpose: Bootstrap module system, load all enabled modules
+  Methods:
+    - boot() - Load all enabled modules
+    - register() - Register module services
+    - loadModuleRoutes($module)
+    - loadModuleViews($module)
+    - loadModuleMigrations($module)
+
+**BASE CLASSES TO CREATE:**
+□ BaseModuleServiceProvider
+  Location: /app/Modules/BaseModuleServiceProvider.php
+  Purpose: Base class that all module providers extend
+  Methods:
+    - registerPermissions() - Hook for adding permissions
+    - registerSettings() - Hook for adding settings
+    - registerRoutes() - Hook for adding routes
+    - registerViews() - Hook for adding views
+    - registerMigrations() - Hook for migrations
+
+**FILAMENT RESOURCES TO CREATE:**
+□ ModuleResource
+  Location: /app/Filament/Resources/ModuleResource.php
+  Features:
+    - List installed modules
+    - Upload new module (ZIP file)
+    - Enable/disable modules
+    - Configure module settings
+    - View module info
+    - Update module
+    - Uninstall module
+    - Dependency checking
+    - Badge showing enabled/disabled count
+
+□ ModuleUploadPage
+  Location: /app/Filament/Pages/ModuleUpload.php
+  Features:
+    - Drag & drop ZIP upload
+    - Validation before install
+    - Installation progress
+    - Rollback on error
+
+**COMMANDS TO CREATE:**
+□ InstallModule
+  Location: /app/Console/Commands/InstallModule.php
+  Usage: php artisan module:install path/to/module.zip
+
+□ UninstallModule
+  Location: /app/Console/Commands/UninstallModule.php
+  Usage: php artisan module:uninstall module-slug
+
+□ EnableModule
+  Location: /app/Console/Commands/EnableModule.php
+  Usage: php artisan module:enable module-slug
+
+□ DisableModule
+  Location: /app/Console/Commands/DisableModule.php
+  Usage: php artisan module:disable module-slug
+
+□ ListModules
+  Location: /app/Console/Commands/ListModules.php
+  Usage: php artisan module:list
+
+**MODULE.JSON SCHEMA:**
+```json
+{
+  "name": "ModuleName",
+  "slug": "module-slug",
+  "version": "1.0.0",
+  "description": "Module description",
+  "author": "Author Name",
+  "email": "author@example.com",
+  "provider": "Modules\\ModuleName\\Providers\\ModuleNameServiceProvider",
+  "requires": {
+    "php": ">=8.2",
+    "laravel": ">=11.0",
+    "modules": ["core", "other-module"]
+  },
+  "conflicts": ["conflicting-module"],
+  "permissions": [
+    {
+      "name": "module.view",
+      "display_name": "View Module",
+      "group": "Module Management"
+    }
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "boolean",
+      "default": true,
+      "label": "Enable Module"
+    }
+  ],
+  "migrations": true,
+  "routes": {
+    "web": true,
+    "api": true
+  }
+}
+```
+
+**ROUTES TO ADD:**
+□ POST /admin/modules/upload - Upload module
+□ GET /admin/modules - List modules
+□ POST /admin/modules/{slug}/enable - Enable module
+□ POST /admin/modules/{slug}/disable - Disable module
+□ DELETE /admin/modules/{slug} - Uninstall module
+□ GET /admin/modules/{slug}/settings - Module settings
+□ PUT /admin/modules/{slug}/settings - Update settings
+
+**TESTING:**
+□ Test module installation
+□ Test module enabling/disabling
+□ Test module uninstallation
+□ Test dependency checking
+□ Test permission registration
+□ Test settings management
+□ Test module updates
+
+
+### 5.2 LICENSE SELLER MODULE [P0] [L: 3-4 weeks] ⚠️ NEW CORE MODULE
+================================================================================
+**PURPOSE:** Allow selling software licenses with automatic validation and expiration
+
+**MODELS TO CREATE:**
+□ License model
+  Location: /modules/LicenseSeller/Models/License.php
+  Fields:
+    - id, user_id, product_id, license_key
+    - domain, ip_address, max_activations
+    - activations_count, status
+    - issued_at, expires_at, suspended_at
+    - last_check_at, subscription_id
+    - notes, metadata (JSON)
+  Statuses: active, expired, suspended, cancelled, revoked
+  Relationships: belongsTo(User), belongsTo(Product), belongsTo(Subscription), hasMany(LicenseActivation)
+
+□ LicenseActivation model
+  Location: /modules/LicenseSeller/Models/LicenseActivation.php
+  Fields:
+    - id, license_id, domain, ip_address
+    - activated_at, last_seen_at, is_active
+    - user_agent, metadata (JSON)
+  Purpose: Track where/when license was activated
+  Relationships: belongsTo(License)
+
+□ LicenseCheck model
+  Location: /modules/LicenseSeller/Models/LicenseCheck.php
+  Fields:
+    - id, license_id, checked_at, status
+    - ip_address, domain, version_checked
+    - response_code, response_message
+  Purpose: Log all license validation requests
+  Relationships: belongsTo(License)
+
+□ LicenseProduct model (extends Product)
+  Location: /modules/LicenseSeller/Models/LicenseProduct.php
+  Additional Fields:
+    - allow_multiple_domains, max_activations
+    - check_interval_hours, grace_period_days
+    - disable_on_expiration, auto_suspend_days_after_expiry
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_licenses_table.php
+□ 2025_XX_XX_create_license_activations_table.php
+□ 2025_XX_XX_create_license_checks_table.php
+□ 2025_XX_XX_add_license_fields_to_products_table.php
+
+**SERVICES TO CREATE:**
+□ LicenseGeneratorService
+  Location: /modules/LicenseSeller/Services/LicenseGeneratorService.php
+  Methods:
+    - generateLicenseKey($format = 'XXXXX-XXXXX-XXXXX-XXXXX') - Generate key
+    - createLicense($userId, $productId, $subscription = null)
+    - assignToSubscription($license, $subscription)
+    - renewLicense($license, $months)
+
+□ LicenseValidationService
+  Location: /modules/LicenseSeller/Services/LicenseValidationService.php
+  Methods:
+    - validateLicense($licenseKey, $domain, $ipAddress)
+    - activateLicense($licenseKey, $domain, $ipAddress)
+    - deactivateLicense($licenseKey, $domain)
+    - checkExpiration($license)
+    - suspendExpiredLicenses()
+    - sendExpirationWarnings()
+
+□ LicenseAutomationService
+  Location: /modules/LicenseSeller/Services/LicenseAutomationService.php
+  Methods:
+    - handleSubscriptionRenewal($subscription) - Auto-renew license
+    - handleSubscriptionCancellation($subscription) - Suspend license
+    - handleSubscriptionExpiration($subscription) - Expire license
+    - handlePaymentSuccess($invoice) - Reactivate license
+    - handlePaymentFailed($invoice) - Warn customer
+
+**CONTROLLERS TO CREATE:**
+□ LicenseController
+  Location: /modules/LicenseSeller/Http/Controllers/LicenseController.php
+  Methods:
+    - index() - List user's licenses
+    - show($license) - View license details
+    - activate($license) - Activate on domain
+    - deactivate($license, $domain) - Deactivate from domain
+    - downloadClient() - Download license validation client
+
+□ LicenseApiController
+  Location: /modules/LicenseSeller/Http/Controllers/Api/LicenseApiController.php
+  Methods:
+    - validate(Request $request) - API endpoint for license validation
+    - activate(Request $request) - API endpoint for license activation
+    - deactivate(Request $request) - API endpoint for deactivation
+    - check(Request $request) - Quick license check
+
+**FILAMENT RESOURCES TO CREATE:**
+□ LicenseResource
+  Location: /modules/LicenseSeller/Resources/Filament/LicenseResource.php
+  Features:
+    - List all licenses
+    - Filter by status, user, product, expiration
+    - Create manual license
+    - Edit license details
+    - Suspend/revoke license
+    - View activation history
+    - Bulk actions (suspend, extend expiration)
+    - Export license list
+
+**VIEWS TO CREATE:**
+□ License list view
+  Location: /modules/LicenseSeller/Resources/Views/licenses/index.blade.php
+□ License details view
+  Location: /modules/LicenseSeller/Resources/Views/licenses/show.blade.php
+□ Activation management
+  Location: /modules/LicenseSeller/Resources/Views/licenses/activations.blade.php
+
+**COMMANDS TO CREATE:**
+□ CheckExpiredLicenses
+  Location: /modules/LicenseSeller/Console/Commands/CheckExpiredLicenses.php
+  Purpose: Check and suspend expired licenses
+  Schedule: Daily
+
+□ SendExpirationWarnings
+  Location: /modules/LicenseSeller/Console/Commands/SendExpirationWarnings.php
+  Purpose: Send warnings before license expires (30, 14, 7, 1 days)
+  Schedule: Daily
+
+□ CleanupInactiveLicenses
+  Location: /modules/LicenseSeller/Console/Commands/CleanupInactiveLicenses.php
+  Purpose: Clean up old, inactive licenses
+  Schedule: Monthly
+
+**MAIL CLASSES TO CREATE:**
+□ LicenseIssuedMail
+□ LicenseExpiringSoonMail (30, 14, 7, 1 day warnings)
+□ LicenseExpiredMail
+□ LicenseSuspendedMail
+□ LicenseRenewedMail
+
+**API ROUTES TO ADD:**
+□ POST /api/license/validate - Validate license
+□ POST /api/license/activate - Activate license
+□ POST /api/license/deactivate - Deactivate license
+□ GET /api/license/check - Quick check
+
+**WEB ROUTES TO ADD:**
+□ GET /licenses - List licenses
+□ GET /licenses/{license} - View license
+□ POST /licenses/{license}/activate - Activate
+□ DELETE /licenses/{license}/activations/{activation} - Deactivate
+
+**PERMISSIONS TO REGISTER:**
+□ license-seller.view
+□ license-seller.create
+□ license-seller.edit
+□ license-seller.delete
+□ license-seller.suspend
+□ license-seller.revoke
+
+**INTEGRATION POINTS:**
+□ Hook into subscription creation - Auto-create license
+□ Hook into subscription renewal - Auto-renew license
+□ Hook into subscription cancellation - Suspend license
+□ Hook into invoice payment - Reactivate suspended license
+□ Hook into product creation - Add license settings
+□ Generate invoice line items for license renewals
+
+**CLIENT SDK (Optional but recommended):**
+□ PHP client library for license validation
+□ JavaScript client library
+□ Code examples for integration
+
+
+### 5.3 WEB CREDITS MODULE [P1] [M: 2-3 weeks]
+================================================================================
+**PURPOSE:** Credit balance system for flexible payment options
+
+**MODELS TO CREATE:**
+□ CreditBalance model
+  Location: /modules/WebCredits/Models/CreditBalance.php
+  Fields:
+    - id, user_id, balance, currency
+    - reserved_balance, total_earned, total_spent
+    - created_at, updated_at
+  Purpose: Track user's credit balance
+  Relationships: belongsTo(User), hasMany(CreditTransaction)
+
+□ CreditTransaction model
+  Location: /modules/WebCredits/Models/CreditTransaction.php
+  Fields:
+    - id, user_id, type, amount, currency
+    - balance_before, balance_after
+    - description, reference_type, reference_id
+    - created_by, created_at
+  Types: purchase, usage, refund, admin_adjustment, bonus, expiration
+  Purpose: Log all credit transactions
+  Relationships: belongsTo(User), morphTo (reference)
+
+□ CreditPackage model
+  Location: /modules/WebCredits/Models/CreditPackage.php
+  Fields:
+    - id, name, credits_amount, price
+    - bonus_credits, is_active, sort_order
+    - description
+  Purpose: Predefined credit packages for purchase
+  Example: $10 for 100 credits, $50 for 600 credits (bonus 100)
+
+□ CreditRule model
+  Location: /modules/WebCredits/Models/CreditRule.php
+  Fields:
+    - id, product_id, allow_credits
+    - min_credit_percentage, max_credit_percentage
+    - credit_value_ratio
+  Purpose: Configure credit usage per product
+  Example: Allow 50% of payment with credits for Product A
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_credit_balances_table.php
+□ 2025_XX_XX_create_credit_transactions_table.php
+□ 2025_XX_XX_create_credit_packages_table.php
+□ 2025_XX_XX_create_credit_rules_table.php
+
+**SERVICES TO CREATE:**
+□ CreditService
+  Location: /modules/WebCredits/Services/CreditService.php
+  Methods:
+    - getBalance($userId) - Get user's current balance
+    - addCredits($userId, $amount, $description, $reference = null)
+    - deductCredits($userId, $amount, $description, $reference = null)
+    - reserveCredits($userId, $amount) - Reserve for pending payment
+    - releaseReservedCredits($userId, $amount) - Release reservation
+    - transferCredits($fromUserId, $toUserId, $amount)
+
+□ CreditPaymentService
+  Location: /modules/WebCredits/Services/CreditPaymentService.php
+  Methods:
+    - applyCreditsToInvoice($invoice, $userId, $amount)
+    - calculateCreditUsage($invoice, $userId) - How much can be used
+    - processPartialPayment($invoice, $creditAmount, $cashAmount)
+    - refundCredits($transaction) - Refund credits
+
+□ CreditPurchaseService
+  Location: /modules/WebCredits/Services/CreditPurchaseService.php
+  Methods:
+    - createPurchaseSession($userId, $packageId) - Stripe checkout
+    - fulfillPurchase($userId, $packageId, $transactionId) - Add credits
+    - calculateBonus($baseCredits, $package) - Calculate bonus
+
+**CONTROLLERS TO CREATE:**
+□ CreditController
+  Location: /modules/WebCredits/Http/Controllers/CreditController.php
+  Methods:
+    - index() - View balance and history
+    - purchase() - Buy credits page
+    - packages() - List credit packages
+    - checkout($package) - Initiate purchase
+    - success() - Purchase success callback
+    - history() - Transaction history
+
+□ AdminCreditController
+  Location: /modules/WebCredits/Http/Controllers/Admin/CreditController.php
+  Methods:
+    - adjustBalance($userId) - Manual adjustment
+    - viewTransactions() - View all transactions
+    - refund($transaction) - Refund transaction
+
+**FILAMENT RESOURCES TO CREATE:**
+□ CreditBalanceResource
+  Location: /modules/WebCredits/Resources/Filament/CreditBalanceResource.php
+  Features:
+    - View all user balances
+    - Adjust balance (add/subtract)
+    - View transaction history per user
+    - Export balances
+
+□ CreditPackageResource
+  Location: /modules/WebCredits/Resources/Filament/CreditPackageResource.php
+  Features:
+    - Create/edit credit packages
+    - Set pricing and bonus
+    - Enable/disable packages
+
+□ CreditRuleResource
+  Location: /modules/WebCredits/Resources/Filament/CreditRuleResource.php
+  Features:
+    - Configure credit rules per product
+    - Set min/max credit usage percentage
+    - Enable/disable credit usage
+
+**VIEWS TO CREATE:**
+□ Credit balance dashboard
+  Location: /modules/WebCredits/Resources/Views/credits/index.blade.php
+□ Buy credits page
+  Location: /modules/WebCredits/Resources/Views/credits/purchase.blade.php
+□ Transaction history
+  Location: /modules/WebCredits/Resources/Views/credits/history.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ CreditBalanceWidget
+  Location: /modules/WebCredits/Livewire/CreditBalanceWidget.php
+  Purpose: Show balance in user dashboard
+
+□ ApplyCreditsComponent
+  Location: /modules/WebCredits/Livewire/ApplyCreditsComponent.php
+  Purpose: Apply credits to invoice/checkout
+
+**COMMANDS TO CREATE:**
+□ ExpireCredits
+  Location: /modules/WebCredits/Console/Commands/ExpireCredits.php
+  Purpose: Expire credits with expiration dates (optional feature)
+  Schedule: Daily
+
+**MAIL CLASSES TO CREATE:**
+□ CreditsPurchasedMail
+□ CreditsLowBalanceMail
+□ CreditsRefundedMail
+
+**ROUTES TO ADD:**
+□ GET /credits - View balance
+□ GET /credits/purchase - Buy credits
+□ POST /credits/checkout/{package} - Purchase package
+□ GET /credits/success - Purchase success
+□ GET /credits/history - Transaction history
+□ POST /checkout/apply-credits - Apply credits to order
+
+**PERMISSIONS TO REGISTER:**
+□ web-credits.view
+□ web-credits.purchase
+□ web-credits.manage (admin)
+□ web-credits.adjust-balance (admin)
+
+**INTEGRATION POINTS:**
+□ Hook into checkout process - Show credit balance, allow application
+□ Hook into invoice payment - Allow partial credit payment
+□ Hook into refund process - Refund to credits option
+□ Show credit balance widget in user dashboard
+□ Add credit purchase option to navigation
+
+**SETTINGS TO ADD:**
+□ Enable/disable web credits system
+□ Minimum purchase amount
+□ Credit to currency ratio (e.g., 1 credit = $1)
+□ Allow credit transfers between users
+□ Credit expiration (optional, days)
+□ Low balance notification threshold
+
+
+### 5.4 CONFIGURE PRODUCT MODULE [P1] [M: 2-3 weeks]
+================================================================================
+**PURPOSE:** Add custom configurable fields to products
+
+**MODELS TO CREATE:**
+□ ProductField model
+  Location: /modules/ConfigureProduct/Models/ProductField.php
+  Fields:
+    - id, product_id, name, field_type, label
+    - description, default_value, validation_rules
+    - is_required, is_enabled, sort_order
+    - options (JSON for select/radio), pricing_impact
+    - show_on_cart, show_on_invoice
+  Field Types: text, textarea, number, select, radio, checkbox, date, file
+  Purpose: Define custom fields per product
+  Relationships: belongsTo(Product), hasMany(ProductFieldValue)
+
+□ ProductFieldValue model
+  Location: /modules/ConfigureProduct/Models/ProductFieldValue.php
+  Fields:
+    - id, product_field_id, order_id (or invoice_line_item_id)
+    - value, selected_option
+  Purpose: Store customer's selections
+  Relationships: belongsTo(ProductField), belongsTo(Order)
+
+□ ProductFieldPricing model
+  Location: /modules/ConfigureProduct/Models/ProductFieldPricing.php
+  Fields:
+    - id, product_field_id, option_value
+    - price_adjustment, adjustment_type
+  Types: fixed, percentage, multiplier
+  Purpose: Add pricing for field options
+  Example: "Color: Red" adds $5, "Size: Large" adds 10%
+  Relationships: belongsTo(ProductField)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_product_fields_table.php
+□ 2025_XX_XX_create_product_field_values_table.php
+□ 2025_XX_XX_create_product_field_pricing_table.php
+
+**SERVICES TO CREATE:**
+□ ProductFieldService
+  Location: /modules/ConfigureProduct/Services/ProductFieldService.php
+  Methods:
+    - getProductFields($productId, $showOnCart = true)
+    - validateFieldValue($field, $value)
+    - calculatePriceAdjustment($field, $value)
+    - saveFieldValues($orderId, $fieldValues)
+
+□ ProductConfigurationService
+  Location: /modules/ConfigureProduct/Services/ProductConfigurationService.php
+  Methods:
+    - renderFieldInput($field) - Generate HTML input
+    - applyConfiguration($product, $configuration) - Apply to order
+    - calculateTotalPrice($product, $configuration)
+
+**CONTROLLERS TO CREATE:**
+□ ProductConfigurationController
+  Location: /modules/ConfigureProduct/Http/Controllers/ProductConfigurationController.php
+  Methods:
+    - configure($product) - Show configuration page
+    - calculate($product) - Calculate price with configuration
+    - addToCart($product) - Add configured product
+
+**FILAMENT RESOURCES TO CREATE:**
+□ ProductFieldResource
+  Location: /modules/ConfigureProduct/Resources/Filament/ProductFieldResource.php
+  Features:
+    - Manage custom fields per product
+    - Drag-and-drop field ordering
+    - Set validation rules
+    - Configure pricing impact
+    - Enable/disable fields
+    - Preview field rendering
+
+**VIEWS TO CREATE:**
+□ Product configuration page
+  Location: /modules/ConfigureProduct/Resources/Views/configure.blade.php
+□ Field inputs (per type)
+  Location: /modules/ConfigureProduct/Resources/Views/fields/*.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ ProductConfigurationForm
+  Location: /modules/ConfigureProduct/Livewire/ProductConfigurationForm.php
+  Purpose: Real-time price calculation as user configures
+
+□ FieldManager
+  Location: /modules/ConfigureProduct/Livewire/FieldManager.php
+  Purpose: Admin field management with drag-and-drop
+
+**ROUTES TO ADD:**
+□ GET /products/{product}/configure - Configuration page
+□ POST /products/{product}/calculate - Calculate price
+□ POST /cart/add-configured - Add to cart
+
+**PERMISSIONS TO REGISTER:**
+□ configure-product.view
+□ configure-product.manage-fields (admin)
+
+**INTEGRATION POINTS:**
+□ Hook into product display - Show "Configure" button
+□ Hook into add to cart - Store configuration
+□ Hook into invoice generation - Include configured values
+□ Hook into order display - Show selected options
+
+
+### 5.5 COUPON SYSTEM [P1] [M: 1-2 weeks] (INTERNAL, NOT MODULE)
+================================================================================
+**PURPOSE:** Flexible discount coupon system
+
+**MODELS TO CREATE:**
+□ Coupon model
+  Location: /app/Models/Coupon.php
+  Fields:
+    - id, code, type, value, description
+    - min_purchase_amount, max_discount_amount
+    - usage_limit, usage_count, per_user_limit
+    - starts_at, expires_at, is_enabled
+    - applicable_products (JSON), applicable_plans (JSON)
+    - exclude_products (JSON), first_purchase_only
+    - stack_with_other_coupons
+  Types: percentage, fixed, free_shipping, credits
+  Purpose: Define discount coupons
+  Relationships: hasMany(CouponUsage)
+
+□ CouponUsage model
+  Location: /app/Models/CouponUsage.php
+  Fields:
+    - id, coupon_id, user_id, order_id (or invoice_id)
+    - discount_amount, used_at
+  Purpose: Track coupon usage
+  Relationships: belongsTo(Coupon), belongsTo(User), belongsTo(Order/Invoice)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_coupons_table.php
+□ 2025_XX_XX_create_coupon_usages_table.php
+
+**SERVICES TO CREATE:**
+□ CouponService
+  Location: /app/Services/CouponService.php
+  Methods:
+    - validateCoupon($code, $userId, $cartTotal, $productIds)
+    - applyCoupon($code, $userId, $order)
+    - calculateDiscount($coupon, $cartTotal, $productIds)
+    - canUserUseCoupon($coupon, $userId)
+    - recordUsage($coupon, $userId, $orderId, $discountAmount)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ CouponResource
+  Location: /app/Filament/Resources/CouponResource.php
+  Features:
+    - Create/edit coupons
+    - Set discount type and value
+    - Configure restrictions (products, users, dates)
+    - Set usage limits
+    - View usage statistics
+    - Bulk enable/disable
+    - Export usage report
+
+**VIEWS TO CREATE:**
+□ Coupon input in checkout
+  Location: /resources/themes/anchor/components/coupon-input.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ CouponApplyComponent
+  Location: /app/Livewire/CouponApplyComponent.php
+  Purpose: Apply coupon in checkout with real-time validation
+
+**ROUTES TO ADD:**
+□ POST /checkout/apply-coupon - Apply coupon
+□ DELETE /checkout/remove-coupon - Remove coupon
+
+**SETTINGS TO ADD:**
+□ Enable/disable coupon system
+□ Allow stacking coupons
+□ Show coupon field on checkout
+
+
+### 5.6 ENHANCED STAFF & PERMISSIONS SYSTEM [P0] [M: 1-2 weeks] (INTERNAL)
+================================================================================
+**NOTE:** Extends existing Spatie Permissions, integrates with modules
+
+**MODELS TO EXTEND:**
+□ Add role seeder with default roles
+  Location: /database/seeders/RolesAndPermissionsSeeder.php
+  Default Roles:
+    - user (customer)
+    - support (can manage tickets, view orders)
+    - admin (full access)
+
+**MIGRATIONS TO ADD:**
+□ 2025_XX_XX_add_module_hooks_to_permissions.php
+  Purpose: Add module_slug field to permissions table for tracking
+
+**SERVICES TO CREATE:**
+□ PermissionRegistryService
+  Location: /app/Services/PermissionRegistryService.php
+  Methods:
+    - registerModulePermissions($moduleSlug, $permissions)
+    - unregisterModulePermissions($moduleSlug)
+    - getAllPermissionsByModule()
+    - syncPermissionsForRole($role, $permissions)
+
+**FILAMENT ENHANCEMENTS:**
+□ Enhance RoleResource
+  Location: /app/Filament/Resources/Roles/RoleResource.php
+  Add:
+    - Group permissions by module
+    - Bulk select/deselect per module
+    - Permission search
+    - Visual permission tree
+
+**COMMANDS TO CREATE:**
+□ SyncModulePermissions
+  Location: /app/Console/Commands/SyncModulePermissions.php
+  Purpose: Sync permissions from all enabled modules
+  Usage: php artisan permissions:sync
+
+**SEEDERS TO CREATE:**
+□ RolesAndPermissionsSeeder
+  Location: /database/seeders/RolesAndPermissionsSeeder.php
+  Create:
+    - user role with basic permissions
+    - support role with ticket + read permissions
+    - admin role with all permissions
+
+**MODULE HOOK SYSTEM:**
+□ All modules must implement:
+  - getPermissions() method in ServiceProvider
+  - Returns array of permissions with groups
+  - Auto-registered when module enabled
+  - Auto-removed when module disabled
+
+**INTEGRATION POINTS:**
+□ Hook into module installation - Register permissions
+□ Hook into module uninstallation - Remove permissions
+□ Hook into role creation - Show all available permissions
+□ Middleware to check module-specific permissions
+
+
+### 5.7 MIGRATE EXISTING FEATURES TO MODULES [P1] [L: 3-4 weeks]
+================================================================================
+**PURPOSE:** Refactor existing features into modular structure
+
+**MODULES TO CREATE FROM EXISTING CODE:**
+□ EvenLeads Module
+  Location: /modules/EvenLeads/
+  Move:
+    - /app/Models/Campaign, Lead, etc.
+    - /app/Http/Controllers/CampaignController, etc.
+    - EvenLeads plugin code
+  Purpose: Lead generation features as a module
+
+□ Marketplace Module (already implemented)
+  Location: /modules/Marketplace/
+  Move:
+    - /app/Models/Marketplace/*
+    - /app/Http/Controllers/Marketplace*
+  Purpose: Keep marketplace as module
+
+□ GrowthHacking Module
+  Location: /modules/GrowthHacking/
+  Move:
+    - /app/Models/GrowthHacking*
+    - /app/Services/GrowthHacking/*
+  Purpose: Email campaigns and automation
+
+□ Analytics Module
+  Location: /modules/Analytics/
+  Purpose: Reporting and analytics (future)
+
+**REFACTORING STEPS:**
+1. Create module structure for each
+2. Move models, controllers, views
+3. Create module.json for each
+4. Create ServiceProvider for each
+5. Register routes in module
+6. Register permissions in module
+7. Update namespace references
+8. Test thoroughly
+
+
+================================================================================
+## TECHNICAL DEBT & IMPROVEMENTS
+================================================================================
+
+### PERFORMANCE OPTIMIZATION [P2]
+□ Database query optimization
+  - Add missing indexes
+  - Optimize N+1 queries
+  - Add query caching where appropriate
+□ Redis caching implementation
+  - Cache frequently accessed data
+  - Session storage in Redis
+  - Queue jobs in Redis
+□ CDN integration for assets
+□ Image optimization
+□ Lazy loading implementation
+
+
+### CODE QUALITY [P2]
+□ Increase test coverage
+  - Unit tests for all models
+  - Feature tests for critical flows
+  - Integration tests for payment processing
+□ Code documentation (PHPDoc)
+□ API documentation (complete Scribe setup)
+□ Refactor large controllers
+□ Extract services from controllers
+□ Implement repository pattern (optional)
+
+
+### SECURITY HARDENING [P1]
+□ Security audit
+□ Penetration testing
+□ SQL injection prevention review
+□ XSS prevention review
+□ CSRF token verification
+□ Input validation review
+□ Output escaping review
+□ Secure file upload handling
+□ Rate limiting on all API endpoints
+
+
+### DEVOPS & DEPLOYMENT [P1]
+□ CI/CD pipeline setup
+  - Automated testing
+  - Automated deployment
+□ Monitoring setup
+  - Error tracking (Sentry)
+  - Performance monitoring
+  - Uptime monitoring
+□ Backup strategy
+  - Automated backups
+  - Backup restoration testing
+□ Disaster recovery plan
+□ Staging environment setup
+□ Production deployment checklist
+
+
+================================================================================
+## PRIORITY SUMMARY
+================================================================================
+
+**CRITICAL (Must implement first - 10-12 weeks):**
+1. Invoice System [3-4 weeks]
+2. Support Ticket System [4-5 weeks]
+3. Enhanced Product/Service Management [2-3 weeks]
+4. Client Portal Enhancements [2-3 weeks]
+
+**HIGH PRIORITY (Implement second - 8-10 weeks):**
+5. Automation System [2-3 weeks]
+6. Enhanced Email System [1-2 weeks]
+7. Reporting & Analytics [2-3 weeks]
+8. Security Hardening [1-2 weeks]
+
+**MEDIUM PRIORITY (Implement third - 6-8 weeks):**
+9. Advanced Client Management [2-3 weeks]
+10. Advanced Admin Features [2-3 weeks]
+11. Advanced Integrations [2-3 weeks]
+
+**LOW PRIORITY (Nice to have - as needed):**
+12. Advanced Marketplace Features [1-2 weeks]
+13. Affiliate Program [2-3 weeks]
+14. Advanced Analytics [2-3 weeks]
+15. Multi-currency & Localization [2-3 weeks]
+16. White Label Features [3-4 weeks]
+
+
+================================================================================
+## IMPLEMENTATION ROADMAP
+================================================================================
+
+**MONTH 1-3: Core Foundation**
+- Invoice System
+- Support Ticket System
+- Product Management
+- Client Portal
+
+**MONTH 4-5: Operations & Automation**
+- Automation System
+- Email System
+- Security Hardening
+- DevOps Setup
+
+**MONTH 6: Intelligence & Insights**
+- Reporting & Analytics
+- Advanced Client Management
+- Performance Optimization
+
+**MONTH 7-8: Advanced Features**
+- Advanced Integrations
+- Advanced Admin Tools
+- Nice-to-have features based on feedback
+
+
+================================================================================
+## RESOURCES NEEDED
+================================================================================
+
+**Development Team:**
+- 1-2 Full-stack Laravel developers
+- 1 Frontend developer (for client portal UI)
+- 1 DevOps engineer (part-time)
+- 1 QA engineer (part-time)
+
+**Third-party Services:**
+- Email service (already have)
+- SMS service (Twilio for notifications)
+- Storage (S3 for backups, files)
+- CDN (Cloudflare)
+- Monitoring (Sentry, Pingdom)
+
+**Tools:**
+- PDF generation library (DomPDF or similar)
+- Chart library (Chart.js, ApexCharts)
+- Excel export library (Laravel Excel)
+- Testing framework (already have PHPUnit)
+
+
+================================================================================
+## SUCCESS METRICS
+================================================================================
+
+**Technical Metrics:**
+- 80%+ test coverage
+- < 100ms average page load time
+- 99.9% uptime
+- Zero critical security vulnerabilities
+
+**Business Metrics:**
+- Full WHMCS feature parity
+- Support ticket resolution time < 24 hours
+- Invoice collection rate > 95%
+- Customer satisfaction score > 4.5/5
+
+**Operational Metrics:**
+- 90% automation of recurring tasks
+- < 5% manual invoice creation
+- < 10% manual service provisioning
+
+
+================================================================================
+## NOTES
+================================================================================
+
+1. **Existing Strengths:**
+   - Excellent foundation with Wave + Filament + Laravel
+   - Modern tech stack (PHP 8.4, Laravel 11)
+   - Good authentication and subscription handling
+   - Marketplace is already well-implemented
+   - Organization/team management exists
+   - Comprehensive webhook handling for Stripe/Paddle
+
+2. **Current State:**
+   - 60-70% feature parity with WHMCS
+   - Missing critical features: invoicing, ticketing
+   - Strong foundation to build upon
+
+3. **Competitive Advantages Over WHMCS:**
+   - Modern UI (Filament 3)
+   - Better developer experience (Laravel)
+   - Built-in marketplace
+   - Organization/team management
+   - Growth hacking features
+
+4. **Recommendations:**
+   - Focus on CRITICAL items first (Phase 1)
+   - Invoice system is #1 priority
+   - Ticketing system is #2 priority
+   - Don't skip testing and security
+   - Consider hiring additional developers for faster implementation
+
+
+================================================================================
+## FILE TRACKING
+================================================================================
+
+Last Updated: 2025-11-06
+Version: 1.0
+Author: Claude AI Analysis
+Platform: EvenLeads (Wave-based SaaS)
+Repository: /home/user/numz.ai/
+Branch: claude/check-tasks-file-011CUqaoBNc2pwVWD6WZ2uKq
