@@ -104,6 +104,31 @@ class AppServiceProvider extends ServiceProvider
         // Register Setting observer to clear cache on updates (ensures instant favicon/logo changes)
         \Wave\Setting::observe(\App\Observers\SettingObserver::class);
 
+        // Register billing automation event listeners
+        Event::listen(
+            \App\Events\PaymentCompleted::class,
+            function (\App\Events\PaymentCompleted $event) {
+                // Mark invoice as paid if payment is for an invoice
+                if ($event->payment->invoice_id) {
+                    $invoice = \App\Models\Invoice::find($event->payment->invoice_id);
+                    if ($invoice && $invoice->status === 'unpaid') {
+                        $invoice->markAsPaid($event->payment->gateway, $event->payment->transaction_id);
+                        event(new \App\Events\InvoicePaid($invoice));
+                    }
+                }
+            }
+        );
+
+        Event::listen(
+            \App\Events\InvoicePaid::class,
+            \App\Listeners\ProcessInvoicePayment::class
+        );
+
+        Event::listen(
+            \App\Events\ServiceCreated::class,
+            \App\Listeners\ProvisionServiceAutomatically::class
+        );
+
         // Override Livewire's file upload route to bypass broken signature validation
         Route::post('/livewire/upload-file', [\App\Http\Controllers\Admin\FileUploadController::class, 'handle'])
             ->middleware(['web'])
