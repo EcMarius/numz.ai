@@ -17,13 +17,19 @@ class InvoiceItem extends Model
         'total',
         'item_type',
         'item_id',
+        'tax_rate',
+        'tax_amount',
+        'group',
+        'sort_order',
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
         'amount' => 'decimal:2',
         'total' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'quantity' => 'integer',
+        'sort_order' => 'integer',
     ];
 
     public function invoice(): BelongsTo
