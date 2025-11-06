@@ -202,6 +202,22 @@ class InstallerController extends Controller
             // Run migrations
             Artisan::call('migrate', ['--force' => true]);
 
+            // Seed essential data
+            Artisan::call('db:seed', [
+                '--class' => 'ModuleConfigurationSeeder',
+                '--force' => true,
+            ]);
+
+            Artisan::call('db:seed', [
+                '--class' => 'SystemSettingsSeeder',
+                '--force' => true,
+            ]);
+
+            Artisan::call('db:seed', [
+                '--class' => 'DefaultEmailTemplatesSeeder',
+                '--force' => true,
+            ]);
+
             // Create admin user
             $user = User::create([
                 'name' => $request->name,
