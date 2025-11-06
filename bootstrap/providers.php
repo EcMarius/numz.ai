@@ -3,6 +3,7 @@
 return [
     App\Providers\AppServiceProvider::class,
     App\Providers\Filament\AdminPanelProvider::class,
+    App\Providers\Filament\CustomerPanelProvider::class,
     App\Providers\FolioServiceProvider::class,
     App\Providers\SocialAuthConfigServiceProvider::class,
     App\Providers\StripeConfigServiceProvider::class,

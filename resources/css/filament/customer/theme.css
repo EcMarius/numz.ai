@@ -1,0 +1,44 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+/* Customer Portal Custom Styles */
+:root {
+    --primary: theme('colors.blue.600');
+    --primary-hover: theme('colors.blue.700');
+}
+
+/* Custom styling for customer portal */
+.fi-sidebar-nav-item {
+    @apply rounded-lg transition-all;
+}
+
+.fi-sidebar-nav-item:hover {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+/* Invoice status badges */
+.fi-badge[data-status="paid"] {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+}
+
+.fi-badge[data-status="pending"] {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
+}
+
+.fi-badge[data-status="overdue"] {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+}
+
+/* Service status badges */
+.fi-badge[data-status="active"] {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+}
+
+.fi-badge[data-status="suspended"] {
+    @apply bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300;
+}
+
+.fi-badge[data-status="cancelled"] {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300;
+}
