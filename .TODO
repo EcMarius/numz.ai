@@ -1252,6 +1252,855 @@ Effort: [XS=1-3d] [S=4-7d] [M=1-2w] [L=3-4w] [XL=5-8w]
 
 
 ================================================================================
+## PHASE 5: MODULAR SYSTEM ARCHITECTURE (12-16 weeks)
+## Build a flexible module system for extensibility
+================================================================================
+
+### 5.1 MODULE SYSTEM INFRASTRUCTURE [P0] [L: 3-4 weeks] ⚠️ CRITICAL
+================================================================================
+**NOTE:** This is the foundation for all other modules and should be implemented first
+
+**FOLDER STRUCTURE TO CREATE:**
+```
+/modules/
+  ├── LicenseSeller/
+  │   ├── Config/
+  │   ├── Database/
+  │   │   ├── Migrations/
+  │   │   └── Seeders/
+  │   ├── Models/
+  │   ├── Http/
+  │   │   └── Controllers/
+  │   ├── Resources/
+  │   │   ├── Filament/
+  │   │   └── Views/
+  │   ├── Routes/
+  │   │   ├── web.php
+  │   │   └── api.php
+  │   ├── Services/
+  │   ├── Providers/
+  │   │   └── LicenseSellerServiceProvider.php
+  │   ├── module.json
+  │   └── README.md
+  ├── WebCredits/
+  ├── ConfigureProduct/
+  ├── EvenLeads/ (move existing)
+  ├── Marketplace/ (move existing)
+  └── ... (other modules)
+```
+
+**MODELS TO CREATE:**
+□ Create Module model
+  Location: /app/Models/Module.php
+  Fields:
+    - id, name, slug, version, description
+    - is_enabled, is_core (cannot be disabled)
+    - author, provider_class, settings (JSON)
+    - installed_at, updated_at
+    - required_modules (JSON array), conflicts_with (JSON)
+  Purpose: Track installed modules and their state
+  Relationships: hasMany(ModulePermission), hasMany(ModuleSetting)
+
+□ Create ModulePermission model
+  Location: /app/Models/ModulePermission.php
+  Fields:
+    - id, module_id, permission_name, display_name
+    - description, group_name
+  Purpose: Store module-specific permissions
+  Relationships: belongsTo(Module)
+
+□ Create ModuleSetting model
+  Location: /app/Models/ModuleSetting.php
+  Fields:
+    - id, module_id, key, value, type
+    - is_public, validation_rules
+  Types: text, number, boolean, json, select, textarea
+  Purpose: Store per-module configuration
+  Relationships: belongsTo(Module)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_modules_table.php
+□ 2025_XX_XX_create_module_permissions_table.php
+□ 2025_XX_XX_create_module_settings_table.php
+
+**SERVICES TO CREATE:**
+□ ModuleService
+  Location: /app/Services/ModuleService.php
+  Methods:
+    - installModule($zipPath) - Extract and install module
+    - uninstallModule($moduleSlug) - Remove module
+    - enableModule($moduleSlug) - Enable module
+    - disableModule($moduleSlug) - Disable module
+    - updateModule($moduleSlug, $zipPath) - Update module version
+    - getModuleInfo($moduleSlug) - Get module metadata
+    - validateModule($path) - Check module structure
+    - runMigrations($moduleSlug) - Run module migrations
+    - rollbackMigrations($moduleSlug) - Rollback module migrations
+    - registerRoutes($moduleSlug) - Load module routes
+    - registerPermissions($moduleSlug) - Register module permissions
+    - getInstalledModules() - List all installed modules
+    - checkDependencies($moduleSlug) - Verify dependencies
+
+□ ModuleLoaderService
+  Location: /app/Services/ModuleLoaderService.php
+  Methods:
+    - loadAllModules() - Load enabled modules on boot
+    - discoverModules() - Scan modules folder
+    - autoloadModule($moduleSlug) - Autoload module classes
+    - registerServiceProvider($provider) - Register module provider
+
+**PROVIDERS TO CREATE:**
+□ ModuleServiceProvider
+  Location: /app/Providers/ModuleServiceProvider.php
+  Purpose: Bootstrap module system, load all enabled modules
+  Methods:
+    - boot() - Load all enabled modules
+    - register() - Register module services
+    - loadModuleRoutes($module)
+    - loadModuleViews($module)
+    - loadModuleMigrations($module)
+
+**BASE CLASSES TO CREATE:**
+□ BaseModuleServiceProvider
+  Location: /app/Modules/BaseModuleServiceProvider.php
+  Purpose: Base class that all module providers extend
+  Methods:
+    - registerPermissions() - Hook for adding permissions
+    - registerSettings() - Hook for adding settings
+    - registerRoutes() - Hook for adding routes
+    - registerViews() - Hook for adding views
+    - registerMigrations() - Hook for migrations
+
+**FILAMENT RESOURCES TO CREATE:**
+□ ModuleResource
+  Location: /app/Filament/Resources/ModuleResource.php
+  Features:
+    - List installed modules
+    - Upload new module (ZIP file)
+    - Enable/disable modules
+    - Configure module settings
+    - View module info
+    - Update module
+    - Uninstall module
+    - Dependency checking
+    - Badge showing enabled/disabled count
+
+□ ModuleUploadPage
+  Location: /app/Filament/Pages/ModuleUpload.php
+  Features:
+    - Drag & drop ZIP upload
+    - Validation before install
+    - Installation progress
+    - Rollback on error
+
+**COMMANDS TO CREATE:**
+□ InstallModule
+  Location: /app/Console/Commands/InstallModule.php
+  Usage: php artisan module:install path/to/module.zip
+
+□ UninstallModule
+  Location: /app/Console/Commands/UninstallModule.php
+  Usage: php artisan module:uninstall module-slug
+
+□ EnableModule
+  Location: /app/Console/Commands/EnableModule.php
+  Usage: php artisan module:enable module-slug
+
+□ DisableModule
+  Location: /app/Console/Commands/DisableModule.php
+  Usage: php artisan module:disable module-slug
+
+□ ListModules
+  Location: /app/Console/Commands/ListModules.php
+  Usage: php artisan module:list
+
+**MODULE.JSON SCHEMA:**
+```json
+{
+  "name": "ModuleName",
+  "slug": "module-slug",
+  "version": "1.0.0",
+  "description": "Module description",
+  "author": "Author Name",
+  "email": "author@example.com",
+  "provider": "Modules\\ModuleName\\Providers\\ModuleNameServiceProvider",
+  "requires": {
+    "php": ">=8.2",
+    "laravel": ">=11.0",
+    "modules": ["core", "other-module"]
+  },
+  "conflicts": ["conflicting-module"],
+  "permissions": [
+    {
+      "name": "module.view",
+      "display_name": "View Module",
+      "group": "Module Management"
+    }
+  ],
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "boolean",
+      "default": true,
+      "label": "Enable Module"
+    }
+  ],
+  "migrations": true,
+  "routes": {
+    "web": true,
+    "api": true
+  }
+}
+```
+
+**ROUTES TO ADD:**
+□ POST /admin/modules/upload - Upload module
+□ GET /admin/modules - List modules
+□ POST /admin/modules/{slug}/enable - Enable module
+□ POST /admin/modules/{slug}/disable - Disable module
+□ DELETE /admin/modules/{slug} - Uninstall module
+□ GET /admin/modules/{slug}/settings - Module settings
+□ PUT /admin/modules/{slug}/settings - Update settings
+
+**TESTING:**
+□ Test module installation
+□ Test module enabling/disabling
+□ Test module uninstallation
+□ Test dependency checking
+□ Test permission registration
+□ Test settings management
+□ Test module updates
+
+
+### 5.2 LICENSE SELLER MODULE [P0] [L: 3-4 weeks] ⚠️ NEW CORE MODULE
+================================================================================
+**PURPOSE:** Allow selling software licenses with automatic validation and expiration
+
+**MODELS TO CREATE:**
+□ License model
+  Location: /modules/LicenseSeller/Models/License.php
+  Fields:
+    - id, user_id, product_id, license_key
+    - domain, ip_address, max_activations
+    - activations_count, status
+    - issued_at, expires_at, suspended_at
+    - last_check_at, subscription_id
+    - notes, metadata (JSON)
+  Statuses: active, expired, suspended, cancelled, revoked
+  Relationships: belongsTo(User), belongsTo(Product), belongsTo(Subscription), hasMany(LicenseActivation)
+
+□ LicenseActivation model
+  Location: /modules/LicenseSeller/Models/LicenseActivation.php
+  Fields:
+    - id, license_id, domain, ip_address
+    - activated_at, last_seen_at, is_active
+    - user_agent, metadata (JSON)
+  Purpose: Track where/when license was activated
+  Relationships: belongsTo(License)
+
+□ LicenseCheck model
+  Location: /modules/LicenseSeller/Models/LicenseCheck.php
+  Fields:
+    - id, license_id, checked_at, status
+    - ip_address, domain, version_checked
+    - response_code, response_message
+  Purpose: Log all license validation requests
+  Relationships: belongsTo(License)
+
+□ LicenseProduct model (extends Product)
+  Location: /modules/LicenseSeller/Models/LicenseProduct.php
+  Additional Fields:
+    - allow_multiple_domains, max_activations
+    - check_interval_hours, grace_period_days
+    - disable_on_expiration, auto_suspend_days_after_expiry
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_licenses_table.php
+□ 2025_XX_XX_create_license_activations_table.php
+□ 2025_XX_XX_create_license_checks_table.php
+□ 2025_XX_XX_add_license_fields_to_products_table.php
+
+**SERVICES TO CREATE:**
+□ LicenseGeneratorService
+  Location: /modules/LicenseSeller/Services/LicenseGeneratorService.php
+  Methods:
+    - generateLicenseKey($format = 'XXXXX-XXXXX-XXXXX-XXXXX') - Generate key
+    - createLicense($userId, $productId, $subscription = null)
+    - assignToSubscription($license, $subscription)
+    - renewLicense($license, $months)
+
+□ LicenseValidationService
+  Location: /modules/LicenseSeller/Services/LicenseValidationService.php
+  Methods:
+    - validateLicense($licenseKey, $domain, $ipAddress)
+    - activateLicense($licenseKey, $domain, $ipAddress)
+    - deactivateLicense($licenseKey, $domain)
+    - checkExpiration($license)
+    - suspendExpiredLicenses()
+    - sendExpirationWarnings()
+
+□ LicenseAutomationService
+  Location: /modules/LicenseSeller/Services/LicenseAutomationService.php
+  Methods:
+    - handleSubscriptionRenewal($subscription) - Auto-renew license
+    - handleSubscriptionCancellation($subscription) - Suspend license
+    - handleSubscriptionExpiration($subscription) - Expire license
+    - handlePaymentSuccess($invoice) - Reactivate license
+    - handlePaymentFailed($invoice) - Warn customer
+
+**CONTROLLERS TO CREATE:**
+□ LicenseController
+  Location: /modules/LicenseSeller/Http/Controllers/LicenseController.php
+  Methods:
+    - index() - List user's licenses
+    - show($license) - View license details
+    - activate($license) - Activate on domain
+    - deactivate($license, $domain) - Deactivate from domain
+    - downloadClient() - Download license validation client
+
+□ LicenseApiController
+  Location: /modules/LicenseSeller/Http/Controllers/Api/LicenseApiController.php
+  Methods:
+    - validate(Request $request) - API endpoint for license validation
+    - activate(Request $request) - API endpoint for license activation
+    - deactivate(Request $request) - API endpoint for deactivation
+    - check(Request $request) - Quick license check
+
+**FILAMENT RESOURCES TO CREATE:**
+□ LicenseResource
+  Location: /modules/LicenseSeller/Resources/Filament/LicenseResource.php
+  Features:
+    - List all licenses
+    - Filter by status, user, product, expiration
+    - Create manual license
+    - Edit license details
+    - Suspend/revoke license
+    - View activation history
+    - Bulk actions (suspend, extend expiration)
+    - Export license list
+
+**VIEWS TO CREATE:**
+□ License list view
+  Location: /modules/LicenseSeller/Resources/Views/licenses/index.blade.php
+□ License details view
+  Location: /modules/LicenseSeller/Resources/Views/licenses/show.blade.php
+□ Activation management
+  Location: /modules/LicenseSeller/Resources/Views/licenses/activations.blade.php
+
+**COMMANDS TO CREATE:**
+□ CheckExpiredLicenses
+  Location: /modules/LicenseSeller/Console/Commands/CheckExpiredLicenses.php
+  Purpose: Check and suspend expired licenses
+  Schedule: Daily
+
+□ SendExpirationWarnings
+  Location: /modules/LicenseSeller/Console/Commands/SendExpirationWarnings.php
+  Purpose: Send warnings before license expires (30, 14, 7, 1 days)
+  Schedule: Daily
+
+□ CleanupInactiveLicenses
+  Location: /modules/LicenseSeller/Console/Commands/CleanupInactiveLicenses.php
+  Purpose: Clean up old, inactive licenses
+  Schedule: Monthly
+
+**MAIL CLASSES TO CREATE:**
+□ LicenseIssuedMail
+□ LicenseExpiringSoonMail (30, 14, 7, 1 day warnings)
+□ LicenseExpiredMail
+□ LicenseSuspendedMail
+□ LicenseRenewedMail
+
+**API ROUTES TO ADD:**
+□ POST /api/license/validate - Validate license
+□ POST /api/license/activate - Activate license
+□ POST /api/license/deactivate - Deactivate license
+□ GET /api/license/check - Quick check
+
+**WEB ROUTES TO ADD:**
+□ GET /licenses - List licenses
+□ GET /licenses/{license} - View license
+□ POST /licenses/{license}/activate - Activate
+□ DELETE /licenses/{license}/activations/{activation} - Deactivate
+
+**PERMISSIONS TO REGISTER:**
+□ license-seller.view
+□ license-seller.create
+□ license-seller.edit
+□ license-seller.delete
+□ license-seller.suspend
+□ license-seller.revoke
+
+**INTEGRATION POINTS:**
+□ Hook into subscription creation - Auto-create license
+□ Hook into subscription renewal - Auto-renew license
+□ Hook into subscription cancellation - Suspend license
+□ Hook into invoice payment - Reactivate suspended license
+□ Hook into product creation - Add license settings
+□ Generate invoice line items for license renewals
+
+**CLIENT SDK (Optional but recommended):**
+□ PHP client library for license validation
+□ JavaScript client library
+□ Code examples for integration
+
+
+### 5.3 WEB CREDITS MODULE [P1] [M: 2-3 weeks]
+================================================================================
+**PURPOSE:** Credit balance system for flexible payment options
+
+**MODELS TO CREATE:**
+□ CreditBalance model
+  Location: /modules/WebCredits/Models/CreditBalance.php
+  Fields:
+    - id, user_id, balance, currency
+    - reserved_balance, total_earned, total_spent
+    - created_at, updated_at
+  Purpose: Track user's credit balance
+  Relationships: belongsTo(User), hasMany(CreditTransaction)
+
+□ CreditTransaction model
+  Location: /modules/WebCredits/Models/CreditTransaction.php
+  Fields:
+    - id, user_id, type, amount, currency
+    - balance_before, balance_after
+    - description, reference_type, reference_id
+    - created_by, created_at
+  Types: purchase, usage, refund, admin_adjustment, bonus, expiration
+  Purpose: Log all credit transactions
+  Relationships: belongsTo(User), morphTo (reference)
+
+□ CreditPackage model
+  Location: /modules/WebCredits/Models/CreditPackage.php
+  Fields:
+    - id, name, credits_amount, price
+    - bonus_credits, is_active, sort_order
+    - description
+  Purpose: Predefined credit packages for purchase
+  Example: $10 for 100 credits, $50 for 600 credits (bonus 100)
+
+□ CreditRule model
+  Location: /modules/WebCredits/Models/CreditRule.php
+  Fields:
+    - id, product_id, allow_credits
+    - min_credit_percentage, max_credit_percentage
+    - credit_value_ratio
+  Purpose: Configure credit usage per product
+  Example: Allow 50% of payment with credits for Product A
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_credit_balances_table.php
+□ 2025_XX_XX_create_credit_transactions_table.php
+□ 2025_XX_XX_create_credit_packages_table.php
+□ 2025_XX_XX_create_credit_rules_table.php
+
+**SERVICES TO CREATE:**
+□ CreditService
+  Location: /modules/WebCredits/Services/CreditService.php
+  Methods:
+    - getBalance($userId) - Get user's current balance
+    - addCredits($userId, $amount, $description, $reference = null)
+    - deductCredits($userId, $amount, $description, $reference = null)
+    - reserveCredits($userId, $amount) - Reserve for pending payment
+    - releaseReservedCredits($userId, $amount) - Release reservation
+    - transferCredits($fromUserId, $toUserId, $amount)
+
+□ CreditPaymentService
+  Location: /modules/WebCredits/Services/CreditPaymentService.php
+  Methods:
+    - applyCreditsToInvoice($invoice, $userId, $amount)
+    - calculateCreditUsage($invoice, $userId) - How much can be used
+    - processPartialPayment($invoice, $creditAmount, $cashAmount)
+    - refundCredits($transaction) - Refund credits
+
+□ CreditPurchaseService
+  Location: /modules/WebCredits/Services/CreditPurchaseService.php
+  Methods:
+    - createPurchaseSession($userId, $packageId) - Stripe checkout
+    - fulfillPurchase($userId, $packageId, $transactionId) - Add credits
+    - calculateBonus($baseCredits, $package) - Calculate bonus
+
+**CONTROLLERS TO CREATE:**
+□ CreditController
+  Location: /modules/WebCredits/Http/Controllers/CreditController.php
+  Methods:
+    - index() - View balance and history
+    - purchase() - Buy credits page
+    - packages() - List credit packages
+    - checkout($package) - Initiate purchase
+    - success() - Purchase success callback
+    - history() - Transaction history
+
+□ AdminCreditController
+  Location: /modules/WebCredits/Http/Controllers/Admin/CreditController.php
+  Methods:
+    - adjustBalance($userId) - Manual adjustment
+    - viewTransactions() - View all transactions
+    - refund($transaction) - Refund transaction
+
+**FILAMENT RESOURCES TO CREATE:**
+□ CreditBalanceResource
+  Location: /modules/WebCredits/Resources/Filament/CreditBalanceResource.php
+  Features:
+    - View all user balances
+    - Adjust balance (add/subtract)
+    - View transaction history per user
+    - Export balances
+
+□ CreditPackageResource
+  Location: /modules/WebCredits/Resources/Filament/CreditPackageResource.php
+  Features:
+    - Create/edit credit packages
+    - Set pricing and bonus
+    - Enable/disable packages
+
+□ CreditRuleResource
+  Location: /modules/WebCredits/Resources/Filament/CreditRuleResource.php
+  Features:
+    - Configure credit rules per product
+    - Set min/max credit usage percentage
+    - Enable/disable credit usage
+
+**VIEWS TO CREATE:**
+□ Credit balance dashboard
+  Location: /modules/WebCredits/Resources/Views/credits/index.blade.php
+□ Buy credits page
+  Location: /modules/WebCredits/Resources/Views/credits/purchase.blade.php
+□ Transaction history
+  Location: /modules/WebCredits/Resources/Views/credits/history.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ CreditBalanceWidget
+  Location: /modules/WebCredits/Livewire/CreditBalanceWidget.php
+  Purpose: Show balance in user dashboard
+
+□ ApplyCreditsComponent
+  Location: /modules/WebCredits/Livewire/ApplyCreditsComponent.php
+  Purpose: Apply credits to invoice/checkout
+
+**COMMANDS TO CREATE:**
+□ ExpireCredits
+  Location: /modules/WebCredits/Console/Commands/ExpireCredits.php
+  Purpose: Expire credits with expiration dates (optional feature)
+  Schedule: Daily
+
+**MAIL CLASSES TO CREATE:**
+□ CreditsPurchasedMail
+□ CreditsLowBalanceMail
+□ CreditsRefundedMail
+
+**ROUTES TO ADD:**
+□ GET /credits - View balance
+□ GET /credits/purchase - Buy credits
+□ POST /credits/checkout/{package} - Purchase package
+□ GET /credits/success - Purchase success
+□ GET /credits/history - Transaction history
+□ POST /checkout/apply-credits - Apply credits to order
+
+**PERMISSIONS TO REGISTER:**
+□ web-credits.view
+□ web-credits.purchase
+□ web-credits.manage (admin)
+□ web-credits.adjust-balance (admin)
+
+**INTEGRATION POINTS:**
+□ Hook into checkout process - Show credit balance, allow application
+□ Hook into invoice payment - Allow partial credit payment
+□ Hook into refund process - Refund to credits option
+□ Show credit balance widget in user dashboard
+□ Add credit purchase option to navigation
+
+**SETTINGS TO ADD:**
+□ Enable/disable web credits system
+□ Minimum purchase amount
+□ Credit to currency ratio (e.g., 1 credit = $1)
+□ Allow credit transfers between users
+□ Credit expiration (optional, days)
+□ Low balance notification threshold
+
+
+### 5.4 CONFIGURE PRODUCT MODULE [P1] [M: 2-3 weeks]
+================================================================================
+**PURPOSE:** Add custom configurable fields to products
+
+**MODELS TO CREATE:**
+□ ProductField model
+  Location: /modules/ConfigureProduct/Models/ProductField.php
+  Fields:
+    - id, product_id, name, field_type, label
+    - description, default_value, validation_rules
+    - is_required, is_enabled, sort_order
+    - options (JSON for select/radio), pricing_impact
+    - show_on_cart, show_on_invoice
+  Field Types: text, textarea, number, select, radio, checkbox, date, file
+  Purpose: Define custom fields per product
+  Relationships: belongsTo(Product), hasMany(ProductFieldValue)
+
+□ ProductFieldValue model
+  Location: /modules/ConfigureProduct/Models/ProductFieldValue.php
+  Fields:
+    - id, product_field_id, order_id (or invoice_line_item_id)
+    - value, selected_option
+  Purpose: Store customer's selections
+  Relationships: belongsTo(ProductField), belongsTo(Order)
+
+□ ProductFieldPricing model
+  Location: /modules/ConfigureProduct/Models/ProductFieldPricing.php
+  Fields:
+    - id, product_field_id, option_value
+    - price_adjustment, adjustment_type
+  Types: fixed, percentage, multiplier
+  Purpose: Add pricing for field options
+  Example: "Color: Red" adds $5, "Size: Large" adds 10%
+  Relationships: belongsTo(ProductField)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_product_fields_table.php
+□ 2025_XX_XX_create_product_field_values_table.php
+□ 2025_XX_XX_create_product_field_pricing_table.php
+
+**SERVICES TO CREATE:**
+□ ProductFieldService
+  Location: /modules/ConfigureProduct/Services/ProductFieldService.php
+  Methods:
+    - getProductFields($productId, $showOnCart = true)
+    - validateFieldValue($field, $value)
+    - calculatePriceAdjustment($field, $value)
+    - saveFieldValues($orderId, $fieldValues)
+
+□ ProductConfigurationService
+  Location: /modules/ConfigureProduct/Services/ProductConfigurationService.php
+  Methods:
+    - renderFieldInput($field) - Generate HTML input
+    - applyConfiguration($product, $configuration) - Apply to order
+    - calculateTotalPrice($product, $configuration)
+
+**CONTROLLERS TO CREATE:**
+□ ProductConfigurationController
+  Location: /modules/ConfigureProduct/Http/Controllers/ProductConfigurationController.php
+  Methods:
+    - configure($product) - Show configuration page
+    - calculate($product) - Calculate price with configuration
+    - addToCart($product) - Add configured product
+
+**FILAMENT RESOURCES TO CREATE:**
+□ ProductFieldResource
+  Location: /modules/ConfigureProduct/Resources/Filament/ProductFieldResource.php
+  Features:
+    - Manage custom fields per product
+    - Drag-and-drop field ordering
+    - Set validation rules
+    - Configure pricing impact
+    - Enable/disable fields
+    - Preview field rendering
+
+**VIEWS TO CREATE:**
+□ Product configuration page
+  Location: /modules/ConfigureProduct/Resources/Views/configure.blade.php
+□ Field inputs (per type)
+  Location: /modules/ConfigureProduct/Resources/Views/fields/*.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ ProductConfigurationForm
+  Location: /modules/ConfigureProduct/Livewire/ProductConfigurationForm.php
+  Purpose: Real-time price calculation as user configures
+
+□ FieldManager
+  Location: /modules/ConfigureProduct/Livewire/FieldManager.php
+  Purpose: Admin field management with drag-and-drop
+
+**ROUTES TO ADD:**
+□ GET /products/{product}/configure - Configuration page
+□ POST /products/{product}/calculate - Calculate price
+□ POST /cart/add-configured - Add to cart
+
+**PERMISSIONS TO REGISTER:**
+□ configure-product.view
+□ configure-product.manage-fields (admin)
+
+**INTEGRATION POINTS:**
+□ Hook into product display - Show "Configure" button
+□ Hook into add to cart - Store configuration
+□ Hook into invoice generation - Include configured values
+□ Hook into order display - Show selected options
+
+
+### 5.5 COUPON SYSTEM [P1] [M: 1-2 weeks] (INTERNAL, NOT MODULE)
+================================================================================
+**PURPOSE:** Flexible discount coupon system
+
+**MODELS TO CREATE:**
+□ Coupon model
+  Location: /app/Models/Coupon.php
+  Fields:
+    - id, code, type, value, description
+    - min_purchase_amount, max_discount_amount
+    - usage_limit, usage_count, per_user_limit
+    - starts_at, expires_at, is_enabled
+    - applicable_products (JSON), applicable_plans (JSON)
+    - exclude_products (JSON), first_purchase_only
+    - stack_with_other_coupons
+  Types: percentage, fixed, free_shipping, credits
+  Purpose: Define discount coupons
+  Relationships: hasMany(CouponUsage)
+
+□ CouponUsage model
+  Location: /app/Models/CouponUsage.php
+  Fields:
+    - id, coupon_id, user_id, order_id (or invoice_id)
+    - discount_amount, used_at
+  Purpose: Track coupon usage
+  Relationships: belongsTo(Coupon), belongsTo(User), belongsTo(Order/Invoice)
+
+**MIGRATIONS TO CREATE:**
+□ 2025_XX_XX_create_coupons_table.php
+□ 2025_XX_XX_create_coupon_usages_table.php
+
+**SERVICES TO CREATE:**
+□ CouponService
+  Location: /app/Services/CouponService.php
+  Methods:
+    - validateCoupon($code, $userId, $cartTotal, $productIds)
+    - applyCoupon($code, $userId, $order)
+    - calculateDiscount($coupon, $cartTotal, $productIds)
+    - canUserUseCoupon($coupon, $userId)
+    - recordUsage($coupon, $userId, $orderId, $discountAmount)
+
+**FILAMENT RESOURCES TO CREATE:**
+□ CouponResource
+  Location: /app/Filament/Resources/CouponResource.php
+  Features:
+    - Create/edit coupons
+    - Set discount type and value
+    - Configure restrictions (products, users, dates)
+    - Set usage limits
+    - View usage statistics
+    - Bulk enable/disable
+    - Export usage report
+
+**VIEWS TO CREATE:**
+□ Coupon input in checkout
+  Location: /resources/themes/anchor/components/coupon-input.blade.php
+
+**LIVEWIRE COMPONENTS TO CREATE:**
+□ CouponApplyComponent
+  Location: /app/Livewire/CouponApplyComponent.php
+  Purpose: Apply coupon in checkout with real-time validation
+
+**ROUTES TO ADD:**
+□ POST /checkout/apply-coupon - Apply coupon
+□ DELETE /checkout/remove-coupon - Remove coupon
+
+**SETTINGS TO ADD:**
+□ Enable/disable coupon system
+□ Allow stacking coupons
+□ Show coupon field on checkout
+
+
+### 5.6 ENHANCED STAFF & PERMISSIONS SYSTEM [P0] [M: 1-2 weeks] (INTERNAL)
+================================================================================
+**NOTE:** Extends existing Spatie Permissions, integrates with modules
+
+**MODELS TO EXTEND:**
+□ Add role seeder with default roles
+  Location: /database/seeders/RolesAndPermissionsSeeder.php
+  Default Roles:
+    - user (customer)
+    - support (can manage tickets, view orders)
+    - admin (full access)
+
+**MIGRATIONS TO ADD:**
+□ 2025_XX_XX_add_module_hooks_to_permissions.php
+  Purpose: Add module_slug field to permissions table for tracking
+
+**SERVICES TO CREATE:**
+□ PermissionRegistryService
+  Location: /app/Services/PermissionRegistryService.php
+  Methods:
+    - registerModulePermissions($moduleSlug, $permissions)
+    - unregisterModulePermissions($moduleSlug)
+    - getAllPermissionsByModule()
+    - syncPermissionsForRole($role, $permissions)
+
+**FILAMENT ENHANCEMENTS:**
+□ Enhance RoleResource
+  Location: /app/Filament/Resources/Roles/RoleResource.php
+  Add:
+    - Group permissions by module
+    - Bulk select/deselect per module
+    - Permission search
+    - Visual permission tree
+
+**COMMANDS TO CREATE:**
+□ SyncModulePermissions
+  Location: /app/Console/Commands/SyncModulePermissions.php
+  Purpose: Sync permissions from all enabled modules
+  Usage: php artisan permissions:sync
+
+**SEEDERS TO CREATE:**
+□ RolesAndPermissionsSeeder
+  Location: /database/seeders/RolesAndPermissionsSeeder.php
+  Create:
+    - user role with basic permissions
+    - support role with ticket + read permissions
+    - admin role with all permissions
+
+**MODULE HOOK SYSTEM:**
+□ All modules must implement:
+  - getPermissions() method in ServiceProvider
+  - Returns array of permissions with groups
+  - Auto-registered when module enabled
+  - Auto-removed when module disabled
+
+**INTEGRATION POINTS:**
+□ Hook into module installation - Register permissions
+□ Hook into module uninstallation - Remove permissions
+□ Hook into role creation - Show all available permissions
+□ Middleware to check module-specific permissions
+
+
+### 5.7 MIGRATE EXISTING FEATURES TO MODULES [P1] [L: 3-4 weeks]
+================================================================================
+**PURPOSE:** Refactor existing features into modular structure
+
+**MODULES TO CREATE FROM EXISTING CODE:**
+□ EvenLeads Module
+  Location: /modules/EvenLeads/
+  Move:
+    - /app/Models/Campaign, Lead, etc.
+    - /app/Http/Controllers/CampaignController, etc.
+    - EvenLeads plugin code
+  Purpose: Lead generation features as a module
+
+□ Marketplace Module (already implemented)
+  Location: /modules/Marketplace/
+  Move:
+    - /app/Models/Marketplace/*
+    - /app/Http/Controllers/Marketplace*
+  Purpose: Keep marketplace as module
+
+□ GrowthHacking Module
+  Location: /modules/GrowthHacking/
+  Move:
+    - /app/Models/GrowthHacking*
+    - /app/Services/GrowthHacking/*
+  Purpose: Email campaigns and automation
+
+□ Analytics Module
+  Location: /modules/Analytics/
+  Purpose: Reporting and analytics (future)
+
+**REFACTORING STEPS:**
+1. Create module structure for each
+2. Move models, controllers, views
+3. Create module.json for each
+4. Create ServiceProvider for each
+5. Register routes in module
+6. Register permissions in module
+7. Update namespace references
+8. Test thoroughly
+
+
+================================================================================
 ## TECHNICAL DEBT & IMPROVEMENTS
 ================================================================================
 
