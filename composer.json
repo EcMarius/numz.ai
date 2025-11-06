@@ -13,6 +13,7 @@
         "php": "^8.2",
         "ext-exif": "*",
         "ext-gd": "*",
+        "barryvdh/laravel-dompdf": "*",
         "codeat3/blade-phosphor-icons": "^2.0",
         "devdojo/app": "0.11.0",
         "devdojo/auth": "^1.0",
@@ -32,7 +33,6 @@
         "laravel/ui": "^4.6",
         "livewire/livewire": "^3.5",
         "ralphjsmit/livewire-urls": "^1.5",
-        "softgala/laravel-claude-button": "*",
         "spatie/laravel-permission": "^6.12",
         "stripe/stripe-php": "^17.3",
         "tymon/jwt-auth": "^2.2"
@@ -58,12 +58,6 @@
             "Wave\\": "wave/src/"
         }
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "./packages/softgala/laravel-claude-button"
-        }
-    ],
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"

@@ -14,7 +14,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolesTableSeeder::class);
-        $this->call(UsersTableSeeder::class);
+        // Disabled: Users will be created through the NUMZ.AI installer
+        // $this->call(UsersTableSeeder::class);
         $this->call(ChangelogsTableSeeder::class);
         $this->call(ApiKeysTableSeeder::class);
         $this->call(CategoriesTableSeeder::class);

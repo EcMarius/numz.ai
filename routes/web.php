@@ -14,6 +14,135 @@
 use Wave\Facades\Wave;
 use App\Http\Controllers\PluginUploadController;
 use App\Http\Controllers\BlogAIController;
+use App\Http\Controllers\InstallerController;
+use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\Client\ProductCatalogController;
+use App\Http\Controllers\Client\CartController;
+use App\Http\Controllers\Client\CheckoutController;
+use App\Http\Controllers\Client\PaymentController;
+use App\Http\Controllers\Client\DomainController;
+use App\Http\Controllers\Client\ClientPortalController;
+use App\Http\Controllers\Client\SupportTicketController;
+use App\Http\Controllers\Client\KnowledgeBaseController;
+use App\Http\Controllers\WebhookController;
+
+// Client Area - Public Routes
+Route::prefix('products')->name('client.products.')->group(function () {
+    Route::get('/', [ProductCatalogController::class, 'index'])->name('index');
+    Route::get('/{slug}', [ProductCatalogController::class, 'show'])->name('show');
+});
+
+// Knowledge Base - Public Routes
+Route::prefix('knowledge-base')->name('client.kb.')->group(function () {
+    Route::get('/', [KnowledgeBaseController::class, 'index'])->name('index');
+    Route::get('/category/{slug}', [KnowledgeBaseController::class, 'category'])->name('category');
+    Route::get('/{categorySlug}/{articleSlug}', [KnowledgeBaseController::class, 'article'])->name('article');
+    Route::post('/article/{articleId}/vote', [KnowledgeBaseController::class, 'vote'])->name('article.vote');
+    Route::post('/article/{articleId}/comment', [KnowledgeBaseController::class, 'comment'])->name('article.comment')->middleware('auth');
+    Route::get('/article/{articleId}/attachment/{attachmentId}', [KnowledgeBaseController::class, 'downloadAttachment'])->name('article.attachment');
+});
+
+Route::prefix('domains')->name('client.domains.')->group(function () {
+    Route::get('/search', [DomainController::class, 'index'])->name('search');
+    Route::post('/check', [DomainController::class, 'checkAvailability'])->name('check');
+    Route::post('/bulk-search', [DomainController::class, 'bulkSearch'])->name('bulk-search');
+});
+
+Route::prefix('cart')->name('client.cart.')->group(function () {
+    Route::get('/', [CartController::class, 'index'])->name('index');
+    Route::post('/add-product/{slug}', [ProductCatalogController::class, 'addToCart'])->name('add-product');
+    Route::post('/add-domain', [DomainController::class, 'addToCart'])->name('add-domain');
+    Route::delete('/remove/{itemId}', [CartController::class, 'remove'])->name('remove');
+    Route::put('/update/{itemId}', [CartController::class, 'update'])->name('update');
+    Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
+    Route::get('/count', [CartController::class, 'count'])->name('count');
+});
+
+// Client Area - Authenticated Routes
+Route::middleware(['web', 'auth'])->group(function () {
+    // Checkout
+    Route::prefix('checkout')->name('client.checkout.')->group(function () {
+        Route::get('/', [CheckoutController::class, 'index'])->name('index');
+        Route::post('/process', [CheckoutController::class, 'process'])->name('process');
+    });
+
+    // Payment Processing
+    Route::prefix('payment')->name('client.payment.')->group(function () {
+        Route::get('/{gateway}/{invoice}', [PaymentController::class, 'show'])->name('show');
+        Route::post('/stripe', [PaymentController::class, 'processStripe'])->name('stripe');
+        Route::post('/paypal', [PaymentController::class, 'processPayPal'])->name('paypal');
+        Route::get('/paypal/return/{invoice}', [PaymentController::class, 'paypalReturn'])->name('paypal.return');
+        Route::post('/coinbase', [PaymentController::class, 'processCoinbase'])->name('coinbase');
+        Route::get('/success/{invoice}', [PaymentController::class, 'success'])->name('success');
+        Route::get('/failed', [PaymentController::class, 'failed'])->name('failed');
+    });
+
+    // Client Portal
+    Route::prefix('portal')->name('client.')->group(function () {
+        Route::get('/dashboard', [ClientPortalController::class, 'dashboard'])->name('dashboard');
+
+        // Services
+        Route::get('/services', [ClientPortalController::class, 'services'])->name('services');
+        Route::get('/services/{id}', [ClientPortalController::class, 'showService'])->name('services.show');
+        Route::post('/services/{id}/cancel', [ClientPortalController::class, 'cancelService'])->name('services.cancel');
+
+        // Domains
+        Route::get('/domains', [ClientPortalController::class, 'domains'])->name('domains.index');
+        Route::get('/domains/{id}', [ClientPortalController::class, 'showDomain'])->name('domains.show');
+        Route::put('/domains/{id}/nameservers', [ClientPortalController::class, 'updateNameservers'])->name('domains.nameservers');
+        Route::post('/domains/{id}/toggle-autorenew', [ClientPortalController::class, 'toggleAutoRenew'])->name('domains.toggle-autorenew');
+
+        // Invoices
+        Route::get('/invoices', [ClientPortalController::class, 'invoices'])->name('invoices');
+        Route::get('/invoices/{id}', [ClientPortalController::class, 'showInvoice'])->name('invoices.show');
+        Route::get('/invoices/{id}/pdf', [ClientPortalController::class, 'viewInvoice'])->name('invoices.pdf');
+        Route::get('/invoices/{id}/download', [ClientPortalController::class, 'downloadInvoice'])->name('invoices.download');
+        Route::post('/invoices/{id}/pay', [ClientPortalController::class, 'payInvoice'])->name('invoices.pay');
+
+        // Support Tickets
+        Route::get('/tickets', [SupportTicketController::class, 'index'])->name('tickets.index');
+        Route::get('/tickets/create', [SupportTicketController::class, 'create'])->name('tickets.create');
+        Route::post('/tickets', [SupportTicketController::class, 'store'])->name('tickets.store');
+        Route::get('/tickets/{id}', [SupportTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/tickets/{id}/reply', [SupportTicketController::class, 'reply'])->name('tickets.reply');
+        Route::post('/tickets/{id}/close', [SupportTicketController::class, 'close'])->name('tickets.close');
+        Route::post('/tickets/{id}/reopen', [SupportTicketController::class, 'reopen'])->name('tickets.reopen');
+        Route::get('/tickets/{ticketId}/attachments/{attachmentId}/download', [SupportTicketController::class, 'downloadAttachment'])->name('tickets.download-attachment');
+    });
+});
+
+// Payment Gateway Webhooks (no auth required, verified by signature)
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('/stripe', [WebhookController::class, 'stripe'])->name('stripe');
+    Route::post('/paypal', [WebhookController::class, 'paypal'])->name('paypal');
+    Route::post('/coinbase', [WebhookController::class, 'coinbase'])->name('coinbase');
+    Route::post('/razorpay', [WebhookController::class, 'razorpay'])->name('razorpay');
+    Route::post('/2checkout', [WebhookController::class, 'twoCheckout'])->name('2checkout');
+    Route::post('/paysafecard', [WebhookController::class, 'paysafecard'])->name('paysafecard');
+});
+
+// Installer Routes (must be before any middleware)
+Route::prefix('install')->name('installer.')->group(function () {
+    Route::get('/', [InstallerController::class, 'index'])->name('index');
+    Route::get('/requirements', [InstallerController::class, 'requirements'])->name('requirements');
+    Route::get('/license', [InstallerController::class, 'license'])->name('license');
+    Route::post('/license/verify', [InstallerController::class, 'verifyLicense'])->name('license.verify');
+    Route::get('/database', [InstallerController::class, 'database'])->name('database');
+    Route::post('/database/test', [InstallerController::class, 'testDatabase'])->name('database.test');
+    Route::get('/admin', [InstallerController::class, 'admin'])->name('admin');
+    Route::post('/install', [InstallerController::class, 'install'])->name('install');
+});
+
+// Social Authentication Routes
+Route::prefix('auth/social')->name('social.')->group(function () {
+    Route::get('{provider}', [SocialAuthController::class, 'redirect'])->name('redirect');
+    Route::get('{provider}/callback', [SocialAuthController::class, 'callback'])->name('callback');
+});
+
+// Unlink social account (authenticated)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/settings/social/{provider}/unlink', [SocialAuthController::class, 'unlink'])->name('social.unlink');
+});
 
 // NOTE: Email verification route is registered in AppServiceProvider::boot()
 // to ensure it overrides DevDojo Auth's route (which uses signed URLs)
@@ -141,8 +270,8 @@ Route::middleware(['web', 'auth'])->group(function () {
 
         // Add trial period if user doesn't have a subscription and hasn't used trial
         $user = auth()->user();
-        $trialDays = (int) \Wave\Plugins\EvenLeads\Models\Setting::getValue('trial_days', 7);
-        $defaultTrialPlanId = \Wave\Plugins\EvenLeads\Models\Setting::getValue('trial_plan_id', null);
+        $trialDays = (int) config('wave.trial.days', 7);
+        $defaultTrialPlanId = config('wave.trial.plan_id', null);
 
         \Log::info('Trial check', [
             'trial_days' => $trialDays,
@@ -292,3 +421,51 @@ Route::prefix('marketplace')->name('marketplace.')->group(function () {
 
 // Wave routes
 Wave::routes();
+
+// NUMZ.AI Hosting Billing Routes
+Route::middleware(['web', 'auth'])->prefix('numz')->name('numz.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', function() {
+        return view('numz.dashboard');
+    })->name('dashboard');
+
+    // Services
+    Route::get('/services', function() {
+        $services = \App\Models\HostingService::where('user_id', auth()->id())->get();
+        return view('numz.services.index', compact('services'));
+    })->name('services.index');
+
+    // Domains
+    Route::get('/domains', function() {
+        $domains = \App\Models\DomainRegistration::where('user_id', auth()->id())->get();
+        return view('numz.domains.index', compact('domains'));
+    })->name('domains.index');
+
+    // Billing
+    Route::get('/invoices', function() {
+        return view('numz.invoices.index');
+    })->name('invoices.index');
+
+    // Support
+    Route::get('/support', function() {
+        return view('numz.support.index');
+    })->name('support.index');
+});
+
+// WHMCS Compatibility API
+Route::prefix('api/whmcs')->name('whmcs.api.')->group(function () {
+    Route::post('/client/details', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientDetails($request->input('clientid')));
+    });
+
+    Route::post('/client/services', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientServices($request->input('clientid')));
+    });
+
+    Route::post('/client/domains', function(\Illuminate\Http\Request $request) {
+        $compat = new \App\Numz\Services\WHMCSCompatibility();
+        return response()->json($compat->getClientDomains($request->input('clientid')));
+    });
+});

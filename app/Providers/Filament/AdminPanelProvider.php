@@ -65,11 +65,12 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 DashboardWidget::class,
             ])
-            ->plugin(\Wave\Plugins\EvenLeads\Filament\EvenLeadsFilamentPlugin::make())
-            ->plugin(\Wave\Plugins\SocialAuth\Filament\SocialAuthFilamentPlugin::make())
-            ->plugin(\Wave\Plugins\KPIs\Filament\KPIsFilamentPlugin::make())
-            ->plugin(\Wave\Plugins\PostHog\Filament\PostHogFilamentPlugin::make())
-            ->plugin(\Wave\Plugins\Apify\Filament\ApifyFilamentPlugin::make())
+            // Plugins temporarily disabled for NUMZ.AI transformation
+            // ->plugin(\Wave\Plugins\EvenLeads\Filament\EvenLeadsFilamentPlugin::make())
+            // ->plugin(\Wave\Plugins\SocialAuth\Filament\SocialAuthFilamentPlugin::make())
+            // ->plugin(\Wave\Plugins\KPIs\Filament\KPIsFilamentPlugin::make())
+            // ->plugin(\Wave\Plugins\PostHog\Filament\PostHogFilamentPlugin::make())
+            // ->plugin(\Wave\Plugins\Apify\Filament\ApifyFilamentPlugin::make())
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
