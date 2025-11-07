@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Quote extends Model
 {
@@ -229,37 +230,53 @@ class Quote extends Model
      */
     public function convertToInvoice(): Invoice
     {
-        $invoice = Invoice::create([
-            'user_id' => $this->user_id,
-            'invoice_number' => Invoice::generateInvoiceNumber(),
-            'status' => 'pending',
-            'subtotal' => $this->subtotal,
-            'tax' => $this->tax,
-            'discount' => $this->discount,
-            'total' => $this->total,
-            'currency' => $this->currency,
-            'due_date' => now()->addDays(14),
-        ]);
-
-        // Copy items
-        foreach ($this->items as $quoteItem) {
-            $invoice->items()->create([
-                'description' => $quoteItem->name,
-                'quantity' => $quoteItem->quantity,
-                'unit_price' => $quoteItem->unit_price,
-                'amount' => $quoteItem->total_price,
-            ]);
+        // Validate quote can be converted
+        if ($this->status === 'converted') {
+            throw new \Exception('Quote already converted to invoice');
         }
 
-        $this->update([
-            'status' => 'converted',
-            'converted_at' => now(),
-            'invoice_id' => $invoice->id,
-        ]);
+        if ($this->status !== 'accepted') {
+            throw new \Exception('Only accepted quotes can be converted');
+        }
 
-        $this->logActivity('converted', 'Quote converted to invoice', ['invoice_id' => $invoice->id]);
+        if ($this->isExpired()) {
+            throw new \Exception('Cannot convert expired quote');
+        }
 
-        return $invoice;
+        // Use transaction to prevent duplicate conversion
+        return \DB::transaction(function() {
+            $invoice = Invoice::create([
+                'user_id' => $this->user_id,
+                'invoice_number' => Invoice::generateInvoiceNumber(),
+                'status' => 'pending',
+                'subtotal' => $this->subtotal,
+                'tax' => $this->tax,
+                'discount' => $this->discount,
+                'total' => $this->total,
+                'currency' => $this->currency,
+                'due_date' => now()->addDays(14),
+            ]);
+
+            // Copy items
+            foreach ($this->items as $quoteItem) {
+                $invoice->items()->create([
+                    'description' => $quoteItem->name,
+                    'quantity' => $quoteItem->quantity,
+                    'unit_price' => $quoteItem->unit_price,
+                    'amount' => $quoteItem->total_price,
+                ]);
+            }
+
+            $this->update([
+                'status' => 'converted',
+                'converted_at' => now(),
+                'invoice_id' => $invoice->id,
+            ]);
+
+            $this->logActivity('converted', 'Quote converted to invoice', ['invoice_id' => $invoice->id]);
+
+            return $invoice;
+        });
     }
 
     /**

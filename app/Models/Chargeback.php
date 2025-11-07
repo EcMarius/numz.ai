@@ -65,6 +65,11 @@ class Chargeback extends Model
      */
     public function markAsWon(): void
     {
+        // Prevent duplicate resolution
+        if (in_array($this->status, ['won', 'lost'])) {
+            throw new \Exception('Chargeback already resolved');
+        }
+
         $this->update([
             'status' => 'won',
             'resolved_at' => now(),
@@ -76,18 +81,25 @@ class Chargeback extends Model
      */
     public function markAsLost(): void
     {
+        // Prevent duplicate resolution
+        if (in_array($this->status, ['won', 'lost'])) {
+            throw new \Exception('Chargeback already resolved');
+        }
+
         $this->update([
             'status' => 'lost',
             'resolved_at' => now(),
         ]);
 
-        // Create credit note for the chargeback amount
-        $this->invoice->createCreditNote(
-            $this->amount,
-            'refund',
-            'Chargeback lost: ' . $this->chargeback_id,
-            1 // System user
-        );
+        // Create credit note for the chargeback amount if invoice exists
+        if ($this->invoice) {
+            $this->invoice->createCreditNote(
+                $this->amount,
+                'refund',
+                'Chargeback lost: ' . $this->chargeback_id,
+                1 // System user
+            );
+        }
     }
 
     /**
