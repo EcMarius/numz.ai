@@ -59,8 +59,10 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\Testimonials\TestimonialResource::class,
             ]))
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverPages(in: app_path('Numz/Filament/Pages'), for: 'App\\Numz\\Filament\\Pages')
             ->pages($pluginPages)
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            ->discoverWidgets(in: app_path('Numz/Filament/Widgets'), for: 'App\\Numz\\Filament\\Widgets')
             // ->discoverWidgets(in: app_path('BezhanSalleh\FilamentGoogleAnalytics\Widgets'), for: 'BezhanSalleh\\FilamentGoogleAnalytics\\Widgets')
             ->widgets([
                 DashboardWidget::class,
