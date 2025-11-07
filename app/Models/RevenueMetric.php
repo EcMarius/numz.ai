@@ -64,7 +64,12 @@ class RevenueMetric extends Model
             ->where('period_type', $periodType)
             ->first();
 
-        $mrrGrowth = $previousMetric ? (($mrr - $previousMetric->mrr) / $previousMetric->mrr) * 100 : 0;
+        // Calculate MRR growth safely (prevent division by zero)
+        if ($previousMetric && $previousMetric->mrr > 0) {
+            $mrrGrowth = (($mrr - $previousMetric->mrr) / $previousMetric->mrr) * 100;
+        } else {
+            $mrrGrowth = 0; // No previous data or previous MRR was zero
+        }
 
         // Calculate customer metrics
         $newCustomers = \App\Models\User::whereBetween('created_at', [$startDate, $endDate])

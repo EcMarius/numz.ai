@@ -252,7 +252,20 @@ class Order extends Model
         // Calculate prorated credit
         $daysRemaining = now()->diffInDays($this->next_due_date);
         $totalDays = $this->activation_date->diffInDays($this->next_due_date);
-        $proratedCredit = $daysRemaining > 0 ? ($this->total / $totalDays) * $daysRemaining : 0;
+
+        // Prevent division by zero if activation_date equals next_due_date
+        if ($totalDays == 0) {
+            $proratedCredit = 0; // No credit for same-day upgrades
+        } else {
+            $proratedCredit = $daysRemaining > 0 ? ($this->total / $totalDays) * $daysRemaining : 0;
+        }
+
+        // Calculate tax rate safely (prevent division by zero)
+        $taxRate = $this->subtotal > 0 ? ($this->tax / $this->subtotal) : 0;
+
+        $newSubtotal = $newProduct->price - $proratedCredit;
+        $newTax = $newSubtotal * $taxRate;
+        $newTotal = $newSubtotal + $newTax;
 
         // Create new order
         $newOrder = self::create([
@@ -262,9 +275,9 @@ class Order extends Model
             'status' => 'pending',
             'billing_cycle' => $options['billing_cycle'] ?? $this->billing_cycle,
             'quantity' => $options['quantity'] ?? $this->quantity,
-            'subtotal' => $newProduct->price - $proratedCredit,
-            'tax' => ($newProduct->price - $proratedCredit) * ($this->tax / $this->subtotal),
-            'total' => $newProduct->price - $proratedCredit + (($newProduct->price - $proratedCredit) * ($this->tax / $this->subtotal)),
+            'subtotal' => $newSubtotal,
+            'tax' => $newTax,
+            'total' => $newTotal,
             'domain' => $this->domain,
             'configuration' => $options['configuration'] ?? $this->configuration,
             'notes' => "Upgraded from Order #{$this->order_number}",

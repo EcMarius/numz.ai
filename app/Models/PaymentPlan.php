@@ -48,6 +48,11 @@ class PaymentPlan extends Model
      */
     public function createInstallments(): void
     {
+        // Validate installments count (prevent division by zero)
+        if ($this->installments <= 0) {
+            throw new \InvalidArgumentException('Installments must be greater than 0');
+        }
+
         $installmentAmount = round($this->total_amount / $this->installments, 2);
         $currentDate = $this->start_date;
 
@@ -87,6 +92,11 @@ class PaymentPlan extends Model
      */
     public function getProgressPercentage(): float
     {
+        // Prevent division by zero
+        if ($this->total_amount == 0) {
+            return 100; // Consider 0-amount plan as 100% complete
+        }
+
         $paidAmount = $this->installments()
             ->where('status', 'paid')
             ->sum('amount');
