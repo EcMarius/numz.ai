@@ -1383,9 +1383,555 @@ ALTER TABLE transactions ADD CONSTRAINT check_positive_amount CHECK (amount >= 0
 
 ---
 
+## 11. Additional Financial Systems Edge Cases
+
+### Credit Balance System
+
+#### EC-045: Race Condition in Credit Balance Updates
+**File:** `app/Models/CreditBalance.php:42-61`
+**Severity:** CRITICAL
+
+```php
+public function addCredits(float $amount, string $type, string $description): CreditTransaction
+{
+    $this->balance += $amount;
+    $this->total_purchased += $amount;
+    $this->save();
+
+    return $this->transactions()->create([...]);
+}
+```
+
+**Issue:** No database locking. Two simultaneous `addCredits()` calls read same balance, both add their amounts, last save wins.
+
+**Scenario:** Customer purchases two credit packages simultaneously.
+
+**Impact:** CRITICAL - Lost credits, revenue discrepancy, customer complaints.
+
+**Recommendation:**
+```php
+public function addCredits(float $amount, string $type, string $description, array $metadata = []): CreditTransaction
+{
+    return DB::transaction(function() use ($amount, $type, $description, $metadata) {
+        $balance = CreditBalance::where('id', $this->id)
+            ->lockForUpdate()
+            ->first();
+
+        $balance->balance += $amount;
+
+        if ($type === 'purchase') {
+            $balance->total_purchased += $amount;
+        } elseif (in_array($type, ['grant', 'bonus', 'refund'])) {
+            $balance->total_earned += $amount;
+        }
+
+        $balance->save();
+
+        return $balance->transactions()->create([
+            'type' => $type,
+            'amount' => $amount,
+            'balance_after' => $balance->balance,
+            'description' => $description,
+            'metadata' => $metadata,
+        ]);
+    });
+}
+```
+
+#### EC-046: Negative Credit Amount Not Prevented
+**File:** `app/Models/CreditBalance.php:42`
+**Severity:** HIGH
+
+```php
+public function addCredits(float $amount, string $type, string $description): CreditTransaction
+{
+    $this->balance += $amount;
+```
+
+**Issue:** No validation preventing negative `$amount`.
+
+**Scenario:** Bug or malicious input passes negative amount.
+
+**Impact:** Credits deducted instead of added, accounting error.
+
+**Recommendation:**
+```php
+public function addCredits(float $amount, ...): CreditTransaction
+{
+    if ($amount <= 0) {
+        throw new \InvalidArgumentException('Credit amount must be positive');
+    }
+    // ... rest of method
+}
+```
+
+#### EC-047: Race Condition in Deduct Credits Check
+**File:** `app/Models/CreditBalance.php:66-87`
+**Severity:** HIGH
+
+```php
+public function deductCredits(float $amount, ...): CreditTransaction
+{
+    if ($this->balance < $amount) {
+        throw new \Exception('Insufficient credit balance');
+    }
+
+    $this->balance -= $amount;
+    $this->save();
+}
+```
+
+**Issue:** Check-then-act race condition. Two processes both pass balance check.
+
+**Scenario:** Two invoices paid simultaneously using credits.
+
+**Impact:** Balance goes negative.
+
+**Recommendation:**
+```php
+public function deductCredits(float $amount, string $type, string $description, array $metadata = []): CreditTransaction
+{
+    return DB::transaction(function() use ($amount, $type, $description, $metadata) {
+        $balance = CreditBalance::where('id', $this->id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($balance->balance < $amount) {
+            throw new \Exception('Insufficient credit balance');
+        }
+
+        $balance->balance -= $amount;
+
+        if ($type === 'payment') {
+            $balance->total_spent += $amount;
+        }
+
+        $balance->save();
+
+        return $balance->transactions()->create([...]);
+    });
+}
+```
+
+### Coupon System
+
+#### EC-048: Race Condition in Coupon Usage Counter
+**File:** `app/Models/Coupon.php:185-188`
+**Severity:** CRITICAL
+
+```php
+public function incrementUsage(): void
+{
+    $this->increment('uses_count');
+}
+```
+
+**Issue:** Two simultaneous coupon uses both check `max_uses` before either increments counter.
+
+**Scenario:** Limited coupon (max 100 uses) used simultaneously at exactly 100th use.
+
+**Impact:** CRITICAL - Coupon used beyond maximum, revenue loss.
+
+**Recommendation:**
+```php
+public function recordUsage(User $user, ?int $invoiceId, float $discountAmount, string $orderType = 'new'): CouponUsage
+{
+    return DB::transaction(function() use ($user, $invoiceId, $discountAmount, $orderType) {
+        $coupon = Coupon::where('id', $this->id)
+            ->lockForUpdate()
+            ->first();
+
+        // Re-validate after lock
+        if ($coupon->max_uses && $coupon->uses_count >= $coupon->max_uses) {
+            throw new \Exception('Coupon maximum uses exceeded');
+        }
+
+        $coupon->increment('uses_count');
+
+        return $coupon->usages()->create([...]);
+    });
+}
+```
+
+#### EC-049: Email Domain Parsing Can Fail
+**File:** `app/Models/Coupon.php:111`
+**Severity:** HIGH
+
+```php
+$emailDomain = '@' . explode('@', $user->email)[1];
+```
+
+**Issue:** If email has no '@' or multiple '@', array index error.
+
+**Scenario:** Malformed email in database or email like "user@@example.com".
+
+**Impact:** Fatal error when checking coupon eligibility.
+
+**Recommendation:**
+```php
+$emailParts = explode('@', $user->email);
+if (count($emailParts) !== 2) {
+    return false; // Invalid email format
+}
+$emailDomain = '@' . $emailParts[1];
+```
+
+#### EC-050: Percentage Over 100 Creates Negative Price
+**File:** `app/Models/Coupon.php:150`
+**Severity:** MEDIUM
+
+```php
+return round(($amount * $this->value) / 100, 2);
+```
+
+**Issue:** If `value` > 100 (e.g., 150%), discount exceeds amount.
+
+**Scenario:** Admin creates coupon with value = 150.
+
+**Impact:** Customer gets more discount than order value, negative total.
+
+**Recommendation:**
+```php
+if ($this->type === 'percentage') {
+    $discount = round(($amount * $this->value) / 100, 2);
+    return min($discount, $amount); // Don't exceed order amount
+}
+```
+
+#### EC-051: Null Max Uses Per User Check
+**File:** `app/Models/Coupon.php:118-121`
+**Severity:** MEDIUM
+
+```php
+$userUsages = $this->usages()->where('user_id', $user->id)->count();
+if ($userUsages >= $this->max_uses_per_user) {
+    return false;
+}
+```
+
+**Issue:** If `max_uses_per_user` is null, comparison `>= null` always false.
+
+**Scenario:** Coupon has no per-user limit (null), should allow unlimited.
+
+**Impact:** Works correctly but unclear intent. Could break with strict types.
+
+**Recommendation:**
+```php
+if ($this->max_uses_per_user !== null) {
+    $userUsages = $this->usages()->where('user_id', $user->id)->count();
+    if ($userUsages >= $this->max_uses_per_user) {
+        return false;
+    }
+}
+```
+
+### Chargeback System
+
+#### EC-052: Null Invoice Reference in Chargeback
+**File:** `app/Models/Chargeback.php:85`
+**Severity:** HIGH
+
+```php
+$this->invoice->createCreditNote(
+    $this->amount,
+    'refund',
+    'Chargeback lost: ' . $this->chargeback_id,
+    1
+);
+```
+
+**Issue:** If `invoice_id` is null, accessing `$this->invoice` causes error.
+
+**Scenario:** Chargeback created without associated invoice.
+
+**Impact:** Fatal error when marking chargeback as lost.
+
+**Recommendation:**
+```php
+public function markAsLost(): void
+{
+    $this->update([
+        'status' => 'lost',
+        'resolved_at' => now(),
+    ]);
+
+    if ($this->invoice) {
+        $this->invoice->createCreditNote(
+            $this->amount,
+            'refund',
+            'Chargeback lost: ' . $this->chargeback_id,
+            1
+        );
+    }
+}
+```
+
+#### EC-053: No Validation on Chargeback Amount
+**File:** `app/Models/Chargeback.php` (model definition)
+**Severity:** MEDIUM
+
+**Issue:** No validation preventing negative or zero chargeback amounts.
+
+**Scenario:** Data corruption or API misuse.
+
+**Impact:** Invalid chargeback data, incorrect credit notes.
+
+**Recommendation:**
+```php
+// Add to model boot method
+protected static function boot()
+{
+    parent::boot();
+
+    static::creating(function ($chargeback) {
+        if ($chargeback->amount <= 0) {
+            throw new \InvalidArgumentException('Chargeback amount must be positive');
+        }
+    });
+}
+```
+
+#### EC-054: Duplicate Resolution Prevention Missing
+**File:** `app/Models/Chargeback.php:66-91`
+**Severity:** MEDIUM
+
+```php
+public function markAsWon(): void
+{
+    $this->update(['status' => 'won', 'resolved_at' => now()]);
+}
+
+public function markAsLost(): void
+{
+    $this->update(['status' => 'lost', 'resolved_at' => now()]);
+    // Creates credit note
+}
+```
+
+**Issue:** No check preventing marking already-resolved chargeback again.
+
+**Scenario:** Admin marks chargeback as lost, then later as won.
+
+**Impact:** Duplicate credit notes, incorrect accounting.
+
+**Recommendation:**
+```php
+public function markAsWon(): void
+{
+    if (in_array($this->status, ['won', 'lost'])) {
+        throw new \Exception('Chargeback already resolved');
+    }
+
+    $this->update(['status' => 'won', 'resolved_at' => now()]);
+}
+
+public function markAsLost(): void
+{
+    if (in_array($this->status, ['won', 'lost'])) {
+        throw new \Exception('Chargeback already resolved');
+    }
+
+    $this->update(['status' => 'lost', 'resolved_at' => now()]);
+
+    if ($this->invoice) {
+        $this->invoice->createCreditNote(...);
+    }
+}
+```
+
+### Quote System
+
+#### EC-055: Division by Zero in Percentage Discount
+**File:** `app/Models/Quote.php:136`
+**Severity:** MEDIUM
+
+```php
+$discount = ($subtotal * $this->discount_value) / 100;
+```
+
+**Issue:** Not really division by zero, but if `discount_value` > 100, discount exceeds subtotal.
+
+**Scenario:** Admin creates quote with 150% discount.
+
+**Impact:** Negative quote total.
+
+**Recommendation:**
+```php
+if ($this->discount_type === 'percentage') {
+    $discount = ($subtotal * $this->discount_value) / 100;
+    $discount = min($discount, $subtotal); // Cap at subtotal
+}
+```
+
+#### EC-056: Quote Conversion Without Status Check
+**File:** `app/Models/Quote.php:230-263`
+**Severity:** HIGH
+
+```php
+public function convertToInvoice(): Invoice
+{
+    $invoice = Invoice::create([...]);
+
+    // Copy items
+    foreach ($this->items as $quoteItem) {
+        $invoice->items()->create([...]);
+    }
+
+    $this->update([
+        'status' => 'converted',
+        'invoice_id' => $invoice->id,
+    ]);
+}
+```
+
+**Issue:** No check if quote already converted or not in correct status.
+
+**Scenario:** Quote converted twice due to double-click or retry logic.
+
+**Impact:** Duplicate invoices for same quote.
+
+**Recommendation:**
+```php
+public function convertToInvoice(): Invoice
+{
+    if ($this->status === 'converted') {
+        throw new \Exception('Quote already converted to invoice');
+    }
+
+    if ($this->status !== 'accepted') {
+        throw new \Exception('Only accepted quotes can be converted');
+    }
+
+    if ($this->isExpired()) {
+        throw new \Exception('Cannot convert expired quote');
+    }
+
+    return DB::transaction(function() {
+        $invoice = Invoice::create([...]);
+
+        foreach ($this->items as $quoteItem) {
+            $invoice->items()->create([...]);
+        }
+
+        $this->update([
+            'status' => 'converted',
+            'converted_at' => now(),
+            'invoice_id' => $invoice->id,
+        ]);
+
+        return $invoice;
+    });
+}
+```
+
+#### EC-057: Quote Acceptance Without Expiry Check
+**File:** `app/Models/Quote.php:195-209`
+**Severity:** MEDIUM
+
+```php
+public function accept(array $signatureData = []): bool
+{
+    $this->update([
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+}
+```
+
+**Issue:** Allows accepting expired quotes.
+
+**Scenario:** Customer accepts quote after expiry date.
+
+**Impact:** Stale pricing accepted, potential revenue loss.
+
+**Recommendation:**
+```php
+public function accept(array $signatureData = []): bool
+{
+    if ($this->isExpired()) {
+        throw new \Exception('Cannot accept expired quote');
+    }
+
+    if (!in_array($this->status, ['sent', 'viewed'])) {
+        throw new \Exception('Quote cannot be accepted in current status');
+    }
+
+    $this->update([
+        'status' => 'accepted',
+        'accepted_at' => now(),
+    ]);
+
+    if (!empty($signatureData)) {
+        $this->signature()->create($signatureData);
+    }
+
+    $this->logActivity('accepted', 'Quote accepted by customer');
+
+    return true;
+}
+```
+
+#### EC-058: No Item Validation in Quote Total Calculation
+**File:** `app/Models/Quote.php:130-150`
+**Severity:** MEDIUM
+
+```php
+public function calculateTotals(): void
+{
+    $subtotal = $this->items()->sum('total_price');
+
+    // ... calculate discount and tax
+
+    $this->update([
+        'total' => $afterDiscount + $tax,
+    ]);
+}
+```
+
+**Issue:** If quote has no items, `$subtotal` = 0, but no validation.
+
+**Scenario:** Quote sent to customer with $0 total due to no items.
+
+**Impact:** Confusion, unprofessional appearance.
+
+**Recommendation:**
+```php
+public function calculateTotals(): void
+{
+    $itemCount = $this->items()->count();
+
+    if ($itemCount === 0) {
+        throw new \Exception('Cannot calculate totals for quote with no items');
+    }
+
+    $subtotal = $this->items()->sum('total_price');
+
+    // ... rest of calculation
+}
+```
+
+---
+
+## Updated Summary
+
+**Total Edge Cases Identified:** 86+ across 12 major system areas
+
+**Severity Breakdown:**
+- **CRITICAL (8 issues)** - Require immediate attention
+- **HIGH (22 issues)** - Significant risk
+- **MEDIUM (38 issues)** - Moderate risk
+- **LOW (18 issues)** - Minor issues
+
+**New Critical Issues Found:**
+- **EC-045**: Race condition in credit balance updates
+- **EC-047**: Race condition in credit deduction check
+- **EC-048**: Race condition in coupon usage counter
+
+---
+
 ## Conclusion
 
-This analysis identified 72+ edge cases across the entire billing platform, with severity ranging from minor data validation issues to critical security vulnerabilities. The most critical issues require immediate attention:
+This analysis identified 86+ edge cases across the entire billing platform, with severity ranging from minor data validation issues to critical security vulnerabilities. The most critical issues require immediate attention:
 
 - **SQL Injection** in custom reports
 - **Arbitrary class instantiation** in automation rules
