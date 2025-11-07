@@ -164,8 +164,27 @@ class AutomationRule extends Model
             throw new \Exception('Action type is required');
         }
 
-        // Get action handler
-        $handler = app("App\\Numz\\Automation\\Actions\\{$type}Action");
+        // Whitelist of allowed action classes for security
+        $allowedActions = [
+            'SendEmail' => \App\Numz\Automation\Actions\SendEmailAction::class,
+            'SendSMS' => \App\Numz\Automation\Actions\SendSMSAction::class,
+            'SuspendService' => \App\Numz\Automation\Actions\SuspendServiceAction::class,
+            'TerminateService' => \App\Numz\Automation\Actions\TerminateServiceAction::class,
+            'ApplyCredit' => \App\Numz\Automation\Actions\ApplyCreditAction::class,
+            'CreateTicket' => \App\Numz\Automation\Actions\CreateTicketAction::class,
+            'SendNotification' => \App\Numz\Automation\Actions\SendNotificationAction::class,
+            'UpdateStatus' => \App\Numz\Automation\Actions\UpdateStatusAction::class,
+            'TriggerWebhook' => \App\Numz\Automation\Actions\TriggerWebhookAction::class,
+            'AddTag' => \App\Numz\Automation\Actions\AddTagAction::class,
+            'RemoveTag' => \App\Numz\Automation\Actions\RemoveTagAction::class,
+        ];
+
+        if (!isset($allowedActions[$type])) {
+            throw new \Exception("Invalid action type: {$type}. Action not whitelisted.");
+        }
+
+        // Get action handler from whitelist
+        $handler = app($allowedActions[$type]);
 
         return $handler->execute($params, $data);
     }

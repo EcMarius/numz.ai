@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Coupon extends Model
 {
@@ -108,7 +109,11 @@ class Coupon extends Model
 
         // Check email domains
         if ($this->allowed_email_domains) {
-            $emailDomain = '@' . explode('@', $user->email)[1];
+            $emailParts = explode('@', $user->email);
+            if (count($emailParts) !== 2) {
+                return false; // Invalid email format
+            }
+            $emailDomain = '@' . $emailParts[1];
             if (!in_array($emailDomain, $this->allowed_email_domains)) {
                 return false;
             }
@@ -147,7 +152,8 @@ class Coupon extends Model
     public function calculateDiscount(float $amount): float
     {
         if ($this->type === 'percentage') {
-            return round(($amount * $this->value) / 100, 2);
+            $discount = round(($amount * $this->value) / 100, 2);
+            return min($discount, $amount); // Don't exceed order amount
         }
 
         if ($this->type === 'fixed') {
@@ -192,17 +198,37 @@ class Coupon extends Model
      */
     public function recordUsage(User $user, ?int $invoiceId, float $discountAmount, string $orderType = 'new'): CouponUsage
     {
-        $this->incrementUsage();
+        // Use transaction with row locking to prevent race conditions
+        return DB::transaction(function() use ($user, $invoiceId, $discountAmount, $orderType) {
+            $coupon = self::where('id', $this->id)
+                ->lockForUpdate()
+                ->first();
 
-        return $this->usages()->create([
-            'user_id' => $user->id,
-            'invoice_id' => $invoiceId,
-            'discount_amount' => $discountAmount,
-            'order_type' => $orderType,
-            'metadata' => [
-                'applied_at' => now()->toISOString(),
-            ],
-        ]);
+            // Re-validate after lock to prevent exceeding max uses
+            if ($coupon->max_uses && $coupon->uses_count >= $coupon->max_uses) {
+                throw new \Exception('Coupon maximum uses exceeded');
+            }
+
+            // Re-validate per-user limit
+            if ($coupon->max_uses_per_user) {
+                $userUsages = $coupon->usages()->where('user_id', $user->id)->count();
+                if ($userUsages >= $coupon->max_uses_per_user) {
+                    throw new \Exception('Coupon maximum uses per user exceeded');
+                }
+            }
+
+            $coupon->increment('uses_count');
+
+            return $coupon->usages()->create([
+                'user_id' => $user->id,
+                'invoice_id' => $invoiceId,
+                'discount_amount' => $discountAmount,
+                'order_type' => $orderType,
+                'metadata' => [
+                    'applied_at' => now()->toISOString(),
+                ],
+            ]);
+        });
     }
 
     /**

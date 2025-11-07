@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CreditBalance extends Model
 {
@@ -41,23 +42,35 @@ class CreditBalance extends Model
      */
     public function addCredits(float $amount, string $type, string $description, array $metadata = []): CreditTransaction
     {
-        $this->balance += $amount;
-
-        if ($type === 'purchase') {
-            $this->total_purchased += $amount;
-        } elseif (in_array($type, ['grant', 'bonus', 'refund'])) {
-            $this->total_earned += $amount;
+        // Validate amount
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Credit amount must be positive');
         }
 
-        $this->save();
+        // Use transaction with row locking to prevent race conditions
+        return DB::transaction(function() use ($amount, $type, $description, $metadata) {
+            $balance = self::where('id', $this->id)
+                ->lockForUpdate()
+                ->first();
 
-        return $this->transactions()->create([
-            'type' => $type,
-            'amount' => $amount,
-            'balance_after' => $this->balance,
-            'description' => $description,
-            'metadata' => $metadata,
-        ]);
+            $balance->balance += $amount;
+
+            if ($type === 'purchase') {
+                $balance->total_purchased += $amount;
+            } elseif (in_array($type, ['grant', 'bonus', 'refund'])) {
+                $balance->total_earned += $amount;
+            }
+
+            $balance->save();
+
+            return $balance->transactions()->create([
+                'type' => $type,
+                'amount' => $amount,
+                'balance_after' => $balance->balance,
+                'description' => $description,
+                'metadata' => $metadata,
+            ]);
+        });
     }
 
     /**
@@ -65,25 +78,38 @@ class CreditBalance extends Model
      */
     public function deductCredits(float $amount, string $type, string $description, array $metadata = []): CreditTransaction
     {
-        if ($this->balance < $amount) {
-            throw new \Exception('Insufficient credit balance');
+        // Validate amount
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Deduct amount must be positive');
         }
 
-        $this->balance -= $amount;
+        // Use transaction with row locking to prevent race conditions
+        return DB::transaction(function() use ($amount, $type, $description, $metadata) {
+            $balance = self::where('id', $this->id)
+                ->lockForUpdate()
+                ->first();
 
-        if ($type === 'payment') {
-            $this->total_spent += $amount;
-        }
+            // Re-check balance after lock
+            if ($balance->balance < $amount) {
+                throw new \Exception('Insufficient credit balance');
+            }
 
-        $this->save();
+            $balance->balance -= $amount;
 
-        return $this->transactions()->create([
-            'type' => $type,
-            'amount' => -$amount,
-            'balance_after' => $this->balance,
-            'description' => $description,
-            'metadata' => $metadata,
-        ]);
+            if ($type === 'payment') {
+                $balance->total_spent += $amount;
+            }
+
+            $balance->save();
+
+            return $balance->transactions()->create([
+                'type' => $type,
+                'amount' => -$amount,
+                'balance_after' => $balance->balance,
+                'description' => $description,
+                'metadata' => $metadata,
+            ]);
+        });
     }
 
     /**

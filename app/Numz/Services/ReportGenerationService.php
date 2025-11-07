@@ -12,6 +12,38 @@ use Illuminate\Support\Facades\Storage;
 class ReportGenerationService
 {
     /**
+     * Whitelisted fields that can be used in reports
+     */
+    protected const ALLOWED_FIELDS = [
+        // Invoice fields
+        'invoices.id', 'invoices.user_id', 'invoices.invoice_number', 'invoices.status',
+        'invoices.subtotal', 'invoices.tax', 'invoices.total', 'invoices.created_at',
+        'invoices.due_date', 'invoices.paid_date', 'invoices.currency',
+        // Order fields
+        'orders.id', 'orders.user_id', 'orders.product_id', 'orders.order_number',
+        'orders.status', 'orders.total', 'orders.created_at', 'orders.billing_cycle',
+        // User fields
+        'users.id', 'users.name', 'users.email', 'users.created_at',
+        // Product fields
+        'products.id', 'products.name', 'products.price', 'products.category',
+        // Subscription fields
+        'subscriptions.id', 'subscriptions.user_id', 'subscriptions.status',
+        'subscriptions.amount', 'subscriptions.created_at',
+        // Affiliate fields
+        'affiliates.id', 'affiliates.affiliate_code', 'affiliates.total_sales',
+        'affiliates.total_commission_earned', 'affiliates.status',
+        // Commission fields
+        'affiliate_commissions.id', 'affiliate_commissions.commission_amount',
+        'affiliate_commissions.sale_amount', 'affiliate_commissions.status',
+        'affiliate_commissions.earned_date',
+    ];
+
+    /**
+     * Whitelisted aggregation functions
+     */
+    protected const ALLOWED_AGGREGATIONS = ['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'];
+
+    /**
      * Execute a report and return results
      */
     public function executeReport(CustomReport $report, ?int $userId = null): ReportExecution
@@ -160,8 +192,21 @@ class ReportGenerationService
             $alias = $column['alias'] ?? $field;
             $aggregation = $column['aggregation'] ?? null;
 
+            // Validate field
+            if (!in_array($field, self::ALLOWED_FIELDS)) {
+                throw new \Exception("Invalid field: {$field}. Field not whitelisted for reports.");
+            }
+
+            // Sanitize alias (alphanumeric and underscore only)
+            $alias = preg_replace('/[^a-zA-Z0-9_]/', '', $alias);
+
             if ($aggregation) {
-                $selectColumns[] = DB::raw("{$aggregation}({$field}) as {$alias}");
+                // Validate aggregation function
+                $aggregationUpper = strtoupper($aggregation);
+                if (!in_array($aggregationUpper, self::ALLOWED_AGGREGATIONS)) {
+                    throw new \Exception("Invalid aggregation: {$aggregation}");
+                }
+                $selectColumns[] = DB::raw("{$aggregationUpper}({$field}) as {$alias}");
             } else {
                 $selectColumns[] = "{$field} as {$alias}";
             }
@@ -178,7 +223,12 @@ class ReportGenerationService
         foreach ($filters as $filter) {
             $field = $filter['field'];
             $operator = $filter['operator'];
-            $value = $filter['value'];
+            $value = $filter['value'] ?? null;
+
+            // Validate field
+            if (!in_array($field, self::ALLOWED_FIELDS)) {
+                throw new \Exception("Invalid filter field: {$field}. Field not whitelisted for reports.");
+            }
 
             $query = match ($operator) {
                 'equals' => $query->where($field, $value),
@@ -187,7 +237,10 @@ class ReportGenerationService
                 'less_than' => $query->where($field, '<', $value),
                 'contains' => $query->where($field, 'like', "%{$value}%"),
                 'in' => $query->whereIn($field, is_array($value) ? $value : [$value]),
-                'between' => $query->whereBetween($field, [$value['min'], $value['max']]),
+                'between' => $query->whereBetween($field, [
+                    $value['min'] ?? throw new \Exception('Between filter missing min value'),
+                    $value['max'] ?? throw new \Exception('Between filter missing max value')
+                ]),
                 'is_null' => $query->whereNull($field),
                 'is_not_null' => $query->whereNotNull($field),
                 default => $query,
@@ -207,7 +260,14 @@ class ReportGenerationService
         }
 
         foreach ($grouping as $group) {
-            $query->groupBy($group['field']);
+            $field = $group['field'];
+
+            // Validate field
+            if (!in_array($field, self::ALLOWED_FIELDS)) {
+                throw new \Exception("Invalid grouping field: {$field}. Field not whitelisted for reports.");
+            }
+
+            $query->groupBy($field);
         }
 
         return $query;
@@ -225,6 +285,17 @@ class ReportGenerationService
         foreach ($sorting as $sort) {
             $field = $sort['field'];
             $direction = $sort['direction'] ?? 'asc';
+
+            // Validate field
+            if (!in_array($field, self::ALLOWED_FIELDS)) {
+                throw new \Exception("Invalid sorting field: {$field}. Field not whitelisted for reports.");
+            }
+
+            // Validate direction
+            if (!in_array(strtolower($direction), ['asc', 'desc'])) {
+                throw new \Exception("Invalid sort direction: {$direction}");
+            }
+
             $query->orderBy($field, $direction);
         }
 
@@ -251,11 +322,14 @@ class ReportGenerationService
             $type = $calculation['type'];
             $field = $calculation['field'];
 
+            // Extract values for this field
+            $values = array_column($results, $field);
+
             $processedData['calculations'][$calculation['label'] ?? $type] = match ($type) {
-                'sum' => array_sum(array_column($results, $field)),
-                'avg' => count($results) > 0 ? array_sum(array_column($results, $field)) / count($results) : 0,
-                'min' => !empty($results) ? min(array_column($results, $field)) : 0,
-                'max' => !empty($results) ? max(array_column($results, $field)) : 0,
+                'sum' => !empty($values) ? array_sum($values) : 0,
+                'avg' => !empty($values) ? array_sum($values) / count($values) : 0,
+                'min' => !empty($values) ? min($values) : 0,
+                'max' => !empty($values) ? max($values) : 0,
                 'count' => count($results),
                 default => null,
             };
