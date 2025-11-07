@@ -41,7 +41,11 @@ class AffiliateTrackingService
         ]);
 
         // Set cookie for attribution
-        $cookieLifetime = $affiliate->tier->cookie_lifetime_days * 24 * 60; // Convert to minutes
+        if (!$affiliate->tier) {
+            $cookieLifetime = 30 * 24 * 60; // Default 30 days if tier missing
+        } else {
+            $cookieLifetime = $affiliate->tier->cookie_lifetime_days * 24 * 60; // Convert to minutes
+        }
         Cookie::queue(self::COOKIE_NAME, $affiliateCode, $cookieLifetime);
 
         // Track campaign if present
@@ -84,37 +88,42 @@ class AffiliateTrackingService
             return null;
         }
 
-        // Check if user is already referred
-        $existingReferral = AffiliateReferral::where('user_id', $user->id)->first();
+        // Use transaction to prevent duplicate referral creation
+        return \DB::transaction(function() use ($user, $affiliate) {
+            // Check if user is already referred (with lock)
+            $existingReferral = AffiliateReferral::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->first();
 
-        if ($existingReferral) {
-            return $existingReferral;
-        }
+            if ($existingReferral) {
+                return $existingReferral;
+            }
 
-        // Find the click
-        $click = $affiliate->clicks()
-            ->where('ip_address', request()->ip())
-            ->where('converted', false)
-            ->orderBy('clicked_at', 'desc')
-            ->first();
+            // Find the click
+            $click = $affiliate->clicks()
+                ->where('ip_address', request()->ip())
+                ->where('converted', false)
+                ->orderBy('clicked_at', 'desc')
+                ->first();
 
-        // Create referral
-        $referral = $affiliate->addReferral($user, $click);
+            // Create referral
+            $referral = $affiliate->addReferral($user, $click);
 
-        // Mark click as converted
-        $click?->markAsConverted();
+            // Mark click as converted
+            $click?->markAsConverted();
 
-        // Check for fraud
-        AffiliateFraudAlert::checkSelfReferral($affiliate, $user);
+            // Check for fraud
+            AffiliateFraudAlert::checkSelfReferral($affiliate, $user);
 
-        Log::info("Affiliate signup tracked", [
-            'affiliate_code' => $affiliate->affiliate_code,
-            'affiliate_id' => $affiliate->id,
-            'user_id' => $user->id,
-            'referral_id' => $referral->id,
-        ]);
+            Log::info("Affiliate signup tracked", [
+                'affiliate_code' => $affiliate->affiliate_code,
+                'affiliate_id' => $affiliate->id,
+                'user_id' => $user->id,
+                'referral_id' => $referral->id,
+            ]);
 
-        return $referral;
+            return $referral;
+        });
     }
 
     /**

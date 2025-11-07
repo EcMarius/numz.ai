@@ -208,23 +208,40 @@ class Order extends Model
      */
     public function createRenewalInvoice(): Invoice
     {
-        return Invoice::create([
-            'user_id' => $this->user_id,
-            'order_id' => $this->id,
-            'invoice_type' => 'renewal',
-            'status' => 'pending',
-            'subtotal' => $this->subtotal,
-            'tax' => $this->tax,
-            'discount' => 0,
-            'total' => $this->total,
-            'due_date' => $this->next_due_date,
-            'items' => [[
-                'description' => "{$this->product->name} - {$this->billing_cycle} renewal",
-                'quantity' => $this->quantity,
-                'unit_price' => $this->subtotal,
-                'total' => $this->subtotal,
-            ]],
-        ]);
+        // Use transaction to prevent duplicate renewal invoices
+        return \DB::transaction(function() {
+            // Check if renewal invoice already exists
+            $existingInvoice = Invoice::where('order_id', $this->id)
+                ->where('invoice_type', 'renewal')
+                ->where('status', 'pending')
+                ->where('due_date', $this->next_due_date)
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingInvoice) {
+                return $existingInvoice;
+            }
+
+            $productName = $this->product ? $this->product->name : 'Product (Deleted)';
+
+            return Invoice::create([
+                'user_id' => $this->user_id,
+                'order_id' => $this->id,
+                'invoice_type' => 'renewal',
+                'status' => 'pending',
+                'subtotal' => $this->subtotal,
+                'tax' => $this->tax,
+                'discount' => 0,
+                'total' => $this->total,
+                'due_date' => $this->next_due_date,
+                'items' => [[
+                    'description' => "{$productName} - {$this->billing_cycle} renewal",
+                    'quantity' => $this->quantity,
+                    'unit_price' => $this->subtotal,
+                    'total' => $this->subtotal,
+                ]],
+            ]);
+        });
     }
 
     /**
