@@ -7,4 +7,5 @@ return [
     App\Providers\FolioServiceProvider::class,
     App\Providers\SocialAuthConfigServiceProvider::class,
     App\Providers\StripeConfigServiceProvider::class,
+    App\Providers\WHMCSCompatibilityServiceProvider::class,
 ];

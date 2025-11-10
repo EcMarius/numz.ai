@@ -96,6 +96,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization.setup' => \App\Http\Middleware\EnsureOrganizationSetup::class,
             'coming.soon' => \App\Http\Middleware\ComingSoon::class,
             'onboarding.completed' => \App\Http\Middleware\EnsureOnboardingCompleted::class,
+            'whmcs.api' => \App\Http\Middleware\WHMCSApiMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
