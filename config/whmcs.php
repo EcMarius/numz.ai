@@ -6,28 +6,32 @@ return [
     | WHMCS Compatibility Mode
     |--------------------------------------------------------------------------
     |
-    | Enable full backward compatibility with WHMCS modules and hooks
+    | WHMCS compatibility is ALWAYS enabled to support WHMCS modules,
+    | themes, templates, and plugins out of the box.
+    |
+    | All settings are managed via Admin Panel > Settings > WHMCS Configuration
+    | Settings are stored in database and can be changed without touching code.
     |
     */
-    'enabled' => env('WHMCS_COMPATIBILITY', true),
+    'enabled' => true,
 
     /*
     |--------------------------------------------------------------------------
     | Module Directories
     |--------------------------------------------------------------------------
     |
-    | Paths where WHMCS modules are located
+    | Paths where WHMCS modules are located. These match WHMCS conventions.
     |
     */
     'module_paths' => [
-        'servers' => base_path('modules/servers'),
-        'addons' => base_path('modules/addons'),
-        'gateways' => base_path('modules/gateways'),
-        'registrars' => base_path('modules/registrars'),
-        'fraud' => base_path('modules/fraud'),
-        'notifications' => base_path('modules/notifications'),
-        'widgets' => base_path('modules/widgets'),
-        'mail' => base_path('modules/mail'),
+        'servers' => base_path('modules/servers'),          // Provisioning modules (cPanel, Plesk, etc.)
+        'addons' => base_path('modules/addons'),            // Addon modules
+        'gateways' => base_path('modules/gateways'),        // Payment gateways (Stripe, PayPal, etc.)
+        'registrars' => base_path('modules/registrars'),    // Domain registrars
+        'fraud' => base_path('modules/fraud'),              // Fraud detection modules
+        'notifications' => base_path('modules/notifications'), // Notification providers
+        'widgets' => base_path('modules/widgets'),          // Dashboard widgets
+        'mail' => base_path('modules/mail'),                // Mail providers
     ],
 
     /*
@@ -35,7 +39,7 @@ return [
     | Hook Directories
     |--------------------------------------------------------------------------
     |
-    | Paths where WHMCS hooks are located
+    | Paths where WHMCS hook files are located
     |
     */
     'hook_paths' => [
@@ -44,30 +48,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Active Addon Modules
+    | Template Directories
     |--------------------------------------------------------------------------
     |
-    | List of active addon modules
+    | Paths where WHMCS themes and templates are located
     |
     */
-    'active_addons' => [
-        // 'example_addon',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | API Settings
-    |--------------------------------------------------------------------------
-    |
-    | WHMCS API configuration
-    |
-    */
-    'api' => [
-        'enabled' => env('WHMCS_API_ENABLED', true),
-        'access_key' => env('WHMCS_API_ACCESS_KEY'),
-        'secret_key' => env('WHMCS_API_SECRET_KEY'),
-        'allowed_ips' => env('WHMCS_API_ALLOWED_IPS', ''),
-        'rate_limit' => env('WHMCS_API_RATE_LIMIT', 60),
+    'template_paths' => [
+        base_path('templates'),                              // Main templates directory
+        base_path('templates/orderforms'),                   // Order form templates
+        base_path('templates/invoices'),                     // Invoice templates
+        base_path('templates/emails'),                       // Email templates
     ],
 
     /*
@@ -75,23 +66,25 @@ return [
     | Database Table Prefix
     |--------------------------------------------------------------------------
     |
-    | WHMCS table prefix (tbl by default)
+    | WHMCS table prefix (tbl by default) - used for database views
     |
     */
     'table_prefix' => 'tbl',
 
     /*
     |--------------------------------------------------------------------------
-    | Module Log
+    | Module Logging
     |--------------------------------------------------------------------------
     |
-    | Enable logging of module calls
+    | Logging of module calls for debugging
+    | Can be toggled per-module in admin panel
     |
     */
     'module_log' => [
-        'enabled' => env('WHMCS_MODULE_LOG', true),
+        'enabled' => true,
         'log_requests' => true,
         'log_responses' => true,
+        'log_errors_only' => false,
     ],
 
     /*
@@ -99,13 +92,15 @@ return [
     | Template System
     |--------------------------------------------------------------------------
     |
-    | Template engine settings (Smarty compatibility)
+    | WHMCS uses Smarty templates. We support both Smarty and Blade.
+    | Smarty templates (.tpl) are automatically converted to Blade.
     |
     */
     'templates' => [
-        'engine' => 'blade', // or 'smarty' for full compatibility
-        'cache_enabled' => env('WHMCS_TEMPLATE_CACHE', true),
-        'compile_check' => env('APP_DEBUG', true),
+        'engine' => 'smarty',                                // 'smarty' or 'blade'
+        'cache_enabled' => !config('app.debug'),
+        'compile_check' => config('app.debug'),
+        'smarty_compat' => true,                             // Auto-convert Smarty syntax
     ],
 
     /*
@@ -114,175 +109,96 @@ return [
     |--------------------------------------------------------------------------
     |
     | WHMCS cron job configuration
+    | Key is auto-generated and stored in database
     |
     */
     'cron' => [
         'enabled' => true,
-        'key' => env('WHMCS_CRON_KEY'),
-        'ip_whitelist' => env('WHMCS_CRON_IPS', ''),
+        'key' => null,                                       // Set in admin panel
+        'ip_whitelist' => [],                                // Set in admin panel
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Currency Settings
+    | Default Settings
     |--------------------------------------------------------------------------
     |
-    | Default currency and formatting
+    | These are default values. Actual settings are stored in database
+    | and can be changed via Admin Panel > Settings > WHMCS Configuration
     |
     */
-    'currency' => [
-        'default' => 'USD',
-        'prefix' => '$',
-        'suffix' => '',
-        'format' => '1',
-        'decimals' => 2,
-    ],
+    'defaults' => [
+        // Currency
+        'currency' => [
+            'default' => 'USD',
+            'prefix' => '$',
+            'suffix' => '',
+            'format' => 1,
+            'decimals' => 2,
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Date Format
-    |--------------------------------------------------------------------------
-    |
-    | Default date format for WHMCS compatibility
-    |
-    */
-    'date_format' => 'd/m/Y',
-    'datetime_format' => 'd/m/Y H:i:s',
+        // Date formats
+        'date_format' => 'd/m/Y',
+        'datetime_format' => 'd/m/Y H:i:s',
 
-    /*
-    |--------------------------------------------------------------------------
-    | System Settings
-    |--------------------------------------------------------------------------
-    |
-    | Various WHMCS system settings
-    |
-    */
-    'system' => [
-        'company_name' => env('WHMCS_COMPANY_NAME', config('app.name')),
-        'system_url' => env('APP_URL'),
-        'charset' => 'UTF-8',
-        'license_key' => env('WHMCS_LICENSE_KEY'),
-    ],
+        // Invoicing
+        'invoicing' => [
+            'grace_days' => 7,                               // Days before service suspension
+            'reminder_days' => [7, 3, 1],                    // Days before due date
+            'auto_create' => true,                           // Auto-generate recurring invoices
+            'overdue_notice_days' => [1, 3, 7],             // Days after due date
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Invoicing Settings
-    |--------------------------------------------------------------------------
-    |
-    | Invoice generation and payment configuration
-    |
-    */
-    'invoicing' => [
-        'grace_days' => env('WHMCS_INVOICE_GRACE_DAYS', 7),
-        'reminder_days' => [7, 3, 1], // Days before due date to send reminders
-        'auto_create' => env('WHMCS_AUTO_CREATE_INVOICES', true),
-        'overdue_notice_days' => [1, 3, 7], // Days after due date
-    ],
+        // Domains
+        'domains' => [
+            'auto_renew' => false,                           // Default auto-renew off
+            'sync_enabled' => true,                          // Sync with registrar
+            'sync_interval' => 24,                           // Hours between syncs
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Domain Settings
-    |--------------------------------------------------------------------------
-    |
-    | Domain registration and renewal configuration
-    |
-    */
-    'domains' => [
-        'auto_renew' => env('WHMCS_AUTO_RENEW_DOMAINS', true),
-        'sync_enabled' => env('WHMCS_DOMAIN_SYNC', true),
-        'sync_interval' => 24, // hours
-    ],
+        // Tax
+        'tax' => [
+            'enabled' => false,
+            'rate' => 0,
+            'name' => 'VAT',
+            'inclusive' => false,
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Tax Settings
-    |--------------------------------------------------------------------------
-    |
-    | Tax calculation configuration
-    |
-    */
-    'tax' => [
-        'enabled' => env('WHMCS_TAX_ENABLED', false),
-        'rate' => env('WHMCS_TAX_RATE', 0),
-        'name' => env('WHMCS_TAX_NAME', 'VAT'),
-    ],
+        // Provisioning
+        'provisioning' => [
+            'auto_create' => true,                           // Auto-provision on payment
+            'auto_suspend' => true,                          // Auto-suspend when overdue
+            'auto_terminate' => false,                       // Auto-terminate after suspension
+            'suspension_grace_days' => 3,                    // Days after due date before suspension
+            'termination_days' => 30,                        // Days suspended before termination
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Provisioning Settings
-    |--------------------------------------------------------------------------
-    |
-    | Automatic provisioning configuration
-    |
-    */
-    'provisioning' => [
-        'auto_create' => env('WHMCS_AUTO_PROVISION', true),
-        'auto_suspend' => env('WHMCS_AUTO_SUSPEND', true),
-        'auto_terminate' => env('WHMCS_AUTO_TERMINATE', false),
-        'suspension_grace_days' => env('WHMCS_SUSPENSION_GRACE', 3),
-        'termination_days' => env('WHMCS_TERMINATION_DAYS', 30),
-    ],
+        // Email
+        'email' => [
+            'from_name' => config('app.name'),
+            'from_email' => config('mail.from.address'),
+            'send_account_emails' => true,
+            'send_product_emails' => true,
+            'send_domain_emails' => true,
+            'send_invoice_emails' => true,
+            'send_support_emails' => true,
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Email Settings
-    |--------------------------------------------------------------------------
-    |
-    | Email notification configuration
-    |
-    */
-    'email' => [
-        'from_name' => env('WHMCS_EMAIL_FROM_NAME', config('app.name')),
-        'from_email' => env('WHMCS_EMAIL_FROM', env('MAIL_FROM_ADDRESS')),
-        'send_account_emails' => true,
-        'send_product_emails' => true,
-        'send_domain_emails' => true,
-        'send_invoice_emails' => true,
-        'send_support_emails' => true,
-    ],
+        // Client Area
+        'client_area' => [
+            'page_title' => config('app.name') . ' - Client Area',
+            'allow_registration' => true,
+            'require_email_verification' => true,
+            'default_theme' => 'twenty-one',                 // WHMCS default theme
+        ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Client Area Settings
-    |--------------------------------------------------------------------------
-    |
-    | Client area configuration
-    |
-    */
-    'client_area' => [
-        'page_title' => env('WHMCS_PAGE_TITLE', config('app.name') . ' - Client Area'),
-        'allow_registration' => true,
-        'require_email_verification' => true,
-        'default_theme' => 'six',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Area Settings
-    |--------------------------------------------------------------------------
-    |
-    | Admin area configuration
-    |
-    */
-    'admin_area' => [
-        'path' => 'admin',
-        'session_timeout' => 3600,
-        'ip_whitelist' => env('WHMCS_ADMIN_IPS', ''),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Security Settings
-    |--------------------------------------------------------------------------
-    |
-    | Security-related configuration
-    |
-    */
-    'security' => [
-        'csrf_protection' => true,
-        'xss_protection' => true,
-        'sql_injection_protection' => true,
-        'password_strength' => env('WHMCS_PASSWORD_STRENGTH', 80),
-        'two_factor_auth' => env('WHMCS_2FA_ENABLED', true),
+        // Security
+        'security' => [
+            'csrf_protection' => true,
+            'xss_protection' => true,
+            'password_min_strength' => 60,                   // 0-100 scale
+            'two_factor_enabled' => false,                   // Off by default
+            'session_timeout' => 3600,                       // 1 hour
+        ],
     ],
 ];
