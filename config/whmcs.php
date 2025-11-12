@@ -166,6 +166,49 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Invoicing Settings
+    |--------------------------------------------------------------------------
+    |
+    | Invoice generation and payment configuration
+    |
+    */
+    'invoicing' => [
+        'grace_days' => env('WHMCS_INVOICE_GRACE_DAYS', 7),
+        'reminder_days' => [7, 3, 1], // Days before due date to send reminders
+        'auto_create' => env('WHMCS_AUTO_CREATE_INVOICES', true),
+        'overdue_notice_days' => [1, 3, 7], // Days after due date
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Domain Settings
+    |--------------------------------------------------------------------------
+    |
+    | Domain registration and renewal configuration
+    |
+    */
+    'domains' => [
+        'auto_renew' => env('WHMCS_AUTO_RENEW_DOMAINS', true),
+        'sync_enabled' => env('WHMCS_DOMAIN_SYNC', true),
+        'sync_interval' => 24, // hours
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tax Settings
+    |--------------------------------------------------------------------------
+    |
+    | Tax calculation configuration
+    |
+    */
+    'tax' => [
+        'enabled' => env('WHMCS_TAX_ENABLED', false),
+        'rate' => env('WHMCS_TAX_RATE', 0),
+        'name' => env('WHMCS_TAX_NAME', 'VAT'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Provisioning Settings
     |--------------------------------------------------------------------------
     |
@@ -177,7 +220,7 @@ return [
         'auto_suspend' => env('WHMCS_AUTO_SUSPEND', true),
         'auto_terminate' => env('WHMCS_AUTO_TERMINATE', false),
         'suspension_grace_days' => env('WHMCS_SUSPENSION_GRACE', 3),
-        'termination_grace_days' => env('WHMCS_TERMINATION_GRACE', 30),
+        'termination_days' => env('WHMCS_TERMINATION_DAYS', 30),
     ],
 
     /*
