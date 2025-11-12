@@ -17,6 +17,7 @@ $kernel->bootstrap();
 
 // Load WHMCS compatibility functions
 require_once __DIR__ . '/includes/whmcs_compat.php';
+require_once __DIR__ . '/includes/whmcs_functions.php';
 
 // Define WHMCS constant if not already defined
 if (!defined('WHMCS')) {
@@ -70,9 +71,9 @@ if (!defined('SYSTEMURL')) {
 // Currency data
 $currency = [
     'id' => 1,
-    'code' => config('whmcs.currency.default', 'USD'),
-    'prefix' => config('whmcs.currency.prefix', '$'),
-    'suffix' => config('whmcs.currency.suffix', ''),
-    'format' => config('whmcs.currency.format', 1),
+    'code' => \App\Numz\WHMCS\Settings::get('currency_default', 'USD'),
+    'prefix' => \App\Numz\WHMCS\Settings::get('currency_prefix', '$'),
+    'suffix' => \App\Numz\WHMCS\Settings::get('currency_suffix', ''),
+    'format' => 1,
     'rate' => '1.00000',
 ];
