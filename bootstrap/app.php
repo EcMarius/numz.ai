@@ -92,6 +92,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
             'plan.check' => \App\Http\Middleware\PlanCheck::class,
             'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
+            'api.logger' => \App\Http\Middleware\ApiLogger::class,
+            'api.version' => \App\Http\Middleware\ApiVersionCheck::class,
             'enforce.limits' => \App\Http\Middleware\EnforcePlanLimits::class,
             'organization.setup' => \App\Http\Middleware\EnsureOrganizationSetup::class,
             'coming.soon' => \App\Http\Middleware\ComingSoon::class,

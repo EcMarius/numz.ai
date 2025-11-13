@@ -233,3 +233,73 @@ Route::middleware('api.key')->prefix('v1')->group(function () {
     // Account endpoints
     Route::get('/account/usage', [\App\Http\Controllers\Api\AccountController::class, 'usage']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| REST API Routes (WHMCS-style)
+|--------------------------------------------------------------------------
+|
+| These routes provide a complete REST API for managing clients, services,
+| invoices, domains, tickets, and products. Protected by API key authentication
+| with rate limiting and request logging.
+|
+*/
+
+// Public authentication endpoints
+Route::prefix('api/v1')->group(function () {
+    Route::post('/auth/login', [\App\Http\Controllers\Api\ApiAuthController::class, 'login']);
+    Route::post('/auth/register', [\App\Http\Controllers\Api\ApiAuthController::class, 'register']);
+});
+
+// Protected REST API routes - API Key Authentication with Rate Limiting
+Route::prefix('api/v1')->middleware(['api.key', 'throttle:60,1', \App\Http\Middleware\ApiLogger::class])->group(function () {
+
+    // API Key Management
+    Route::get('/auth/keys', [\App\Http\Controllers\Api\ApiAuthController::class, 'getApiKeys']);
+    Route::post('/auth/keys', [\App\Http\Controllers\Api\ApiAuthController::class, 'createApiKey']);
+    Route::delete('/auth/keys/{id}', [\App\Http\Controllers\Api\ApiAuthController::class, 'deleteApiKey']);
+
+    // Client Management
+    Route::get('/clients', [\App\Http\Controllers\Api\ApiClientController::class, 'index']);
+    Route::get('/clients/{id}', [\App\Http\Controllers\Api\ApiClientController::class, 'show']);
+    Route::post('/clients', [\App\Http\Controllers\Api\ApiClientController::class, 'store']);
+    Route::put('/clients/{id}', [\App\Http\Controllers\Api\ApiClientController::class, 'update']);
+    Route::delete('/clients/{id}', [\App\Http\Controllers\Api\ApiClientController::class, 'destroy']);
+
+    // Service Management
+    Route::get('/services', [\App\Http\Controllers\Api\ApiServiceController::class, 'index']);
+    Route::get('/services/{id}', [\App\Http\Controllers\Api\ApiServiceController::class, 'show']);
+    Route::post('/services', [\App\Http\Controllers\Api\ApiServiceController::class, 'store']);
+    Route::post('/services/{id}/activate', [\App\Http\Controllers\Api\ApiServiceController::class, 'activate']);
+    Route::post('/services/{id}/suspend', [\App\Http\Controllers\Api\ApiServiceController::class, 'suspend']);
+    Route::post('/services/{id}/terminate', [\App\Http\Controllers\Api\ApiServiceController::class, 'terminate']);
+    Route::post('/services/{id}/upgrade', [\App\Http\Controllers\Api\ApiServiceController::class, 'upgrade']);
+
+    // Invoice Management
+    Route::get('/invoices', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'index']);
+    Route::get('/invoices/{id}', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'show']);
+    Route::post('/invoices', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'store']);
+    Route::post('/invoices/{id}/pay', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'pay']);
+    Route::post('/invoices/{id}/cancel', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'cancel']);
+    Route::get('/invoices/{id}/download', [\App\Http\Controllers\Api\ApiInvoiceController::class, 'download']);
+
+    // Domain Management
+    Route::get('/domains', [\App\Http\Controllers\Api\ApiDomainController::class, 'index']);
+    Route::get('/domains/{id}', [\App\Http\Controllers\Api\ApiDomainController::class, 'show']);
+    Route::post('/domains/register', [\App\Http\Controllers\Api\ApiDomainController::class, 'register']);
+    Route::post('/domains/{id}/renew', [\App\Http\Controllers\Api\ApiDomainController::class, 'renew']);
+    Route::post('/domains/{id}/transfer', [\App\Http\Controllers\Api\ApiDomainController::class, 'transfer']);
+    Route::post('/domains/{id}/toggle-auto-renew', [\App\Http\Controllers\Api\ApiDomainController::class, 'toggleAutoRenew']);
+
+    // Ticket Management
+    Route::get('/tickets', [\App\Http\Controllers\Api\ApiTicketController::class, 'index']);
+    Route::get('/tickets/{id}', [\App\Http\Controllers\Api\ApiTicketController::class, 'show']);
+    Route::post('/tickets', [\App\Http\Controllers\Api\ApiTicketController::class, 'store']);
+    Route::post('/tickets/{id}/reply', [\App\Http\Controllers\Api\ApiTicketController::class, 'reply']);
+    Route::post('/tickets/{id}/close', [\App\Http\Controllers\Api\ApiTicketController::class, 'close']);
+    Route::post('/tickets/{id}/reopen', [\App\Http\Controllers\Api\ApiTicketController::class, 'reopen']);
+
+    // Product Catalog
+    Route::get('/products', [\App\Http\Controllers\Api\ApiProductController::class, 'index']);
+    Route::get('/products/{id}', [\App\Http\Controllers\Api\ApiProductController::class, 'show']);
+});

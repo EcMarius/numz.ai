@@ -1,0 +1,79 @@
+OVH Module for WHMCS
+Version: 1.0.0
+Release Date: 2025-11-13
+Author: numz.ai
+
+CHANGELOG
+=========
+
+Version 1.0.0 (2025-11-13)
+--------------------------
+Initial release with complete OVH API v6 integration
+
+Features:
+- Full OVH API v6 client with OAuth authentication
+- Support for multiple endpoints (EU, CA, US)
+- Dedicated Server management
+- VPS management
+- Public Cloud support
+- Complete WHMCS module functions:
+  * MetaData()
+  * ConfigOptions()
+  * CreateAccount()
+  * SuspendAccount()
+  * UnsuspendAccount()
+  * TerminateAccount()
+  * ChangePackage()
+  * AdminServicesTabFields()
+  * ClientArea()
+  * TestConnection()
+- Admin custom buttons:
+  * Reboot Server
+  * Reinstall OS
+  * Rescue Mode
+  * Exit Rescue Mode
+  * Get IPMI Access
+  * Create Backup
+  * View Tasks
+- Client area with service details and actions
+- Webhook handler for OVH notifications
+- Automated cron jobs for syncing and monitoring
+- Helper utilities for common operations
+- Database tables for:
+  * Service tracking
+  * Task management
+  * Bandwidth usage
+  * Monitoring alerts
+  * API call logging
+- WHMCS hooks integration:
+  * Admin dashboard widget
+  * Service management hooks
+  * Email template variables
+  * Custom navigation items
+- Full error handling and logging
+- Production-ready code with security best practices
+
+Supported Operations:
+- Server/VPS provisioning
+- OS reinstallation (15+ OS options)
+- Server reboot
+- Rescue mode enable/disable
+- IPMI/KVM console access
+- Backup creation
+- IP management
+- Reverse DNS management
+- Monitoring enable/disable
+- Task tracking
+- Status monitoring
+
+Files:
+- ovh.php (main module)
+- hooks.php (WHMCS integration)
+- install.php (database setup)
+- cron.php (scheduled tasks)
+- webhook.php (webhook handler)
+- config.example.php (configuration reference)
+- lib/OVHHelper.php (utility functions)
+- templates/clientarea.tpl (client interface)
+
+Total: 3600+ lines of production-ready code

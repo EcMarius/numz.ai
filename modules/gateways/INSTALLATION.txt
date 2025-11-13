@@ -1,0 +1,199 @@
+PAYMENT GATEWAY INSTALLATION GUIDE
+====================================
+
+This directory contains 4 production-ready payment gateways:
+
+1. Stripe Complete (modules/gateways/stripe_complete/)
+2. PayPal Complete (modules/gateways/paypal_complete/)
+3. Paddle (modules/gateways/paddle/)
+4. Razorpay (modules/gateways/razorpay/)
+
+------------------------------------
+1. STRIPE COMPLETE GATEWAY
+------------------------------------
+Location: modules/gateways/stripe_complete/
+Callback: modules/gateways/callback/stripe_complete.php
+
+FEATURES:
+- Payment Intents API (SCA/3D Secure compliant)
+- Cards, Apple Pay, Google Pay, Link, Cash App
+- Customer management
+- Refunds and manual capture
+- Webhook signature verification
+- Subscription billing support
+
+INSTALLATION:
+1. cd modules/gateways/stripe_complete/
+2. Run: composer require stripe/stripe-php
+   OR run: ./install.sh
+3. Get your API keys from https://dashboard.stripe.com/apikeys
+4. Configure in admin panel:
+   - Publishable Key (pk_live_... or pk_test_...)
+   - Secret Key (sk_live_... or sk_test_...)
+   - Webhook Secret (whsec_...)
+
+WEBHOOK SETUP:
+URL: https://yourdomain.com/modules/gateways/callback/stripe_complete.php
+Events to listen for:
+- checkout.session.completed
+- payment_intent.succeeded
+- payment_intent.payment_failed
+- charge.refunded
+- charge.dispute.created
+
+------------------------------------
+2. PAYPAL COMPLETE GATEWAY
+------------------------------------
+Location: modules/gateways/paypal_complete/
+Callback: modules/gateways/callback/paypal_complete.php
+
+FEATURES:
+- PayPal Express Checkout (modern REST API)
+- PayPal Standard (legacy support)
+- IPN (Instant Payment Notification)
+- Recurring payments
+- Refunds
+- Sandbox and Live mode
+
+INSTALLATION:
+1. Get your API credentials from https://developer.paypal.com/
+2. Configure in admin panel:
+   - Client ID
+   - Secret
+   - PayPal Email (for Standard payments)
+   - Mode (live/sandbox)
+   - Checkout Type (express/standard)
+
+WEBHOOK SETUP (IPN):
+URL: https://yourdomain.com/modules/gateways/callback/paypal_complete.php
+Configure in PayPal Dashboard > Webhooks
+
+------------------------------------
+3. PADDLE GATEWAY
+------------------------------------
+Location: modules/gateways/paddle/
+Callback: modules/gateways/callback/paddle.php
+
+FEATURES:
+- SaaS billing optimization
+- Automatic VAT/Tax handling (global compliance)
+- Overlay and inline checkout
+- Webhook support
+- Refunds and chargebacks
+- Subscription management
+- Multi-currency support
+
+INSTALLATION:
+1. Get your credentials from https://vendors.paddle.com/
+2. Configure in admin panel:
+   - Vendor ID
+   - API Key (Auth Code)
+   - Public Key (for webhook verification)
+   - Environment (production/sandbox)
+   - Default Product ID
+
+WEBHOOK SETUP:
+URL: https://yourdomain.com/modules/gateways/callback/paddle.php
+Configure in Paddle Dashboard > Developer Tools > Webhooks
+
+IMPORTANT: Copy your Public Key from Paddle Dashboard for webhook verification
+
+------------------------------------
+4. RAZORPAY GATEWAY
+------------------------------------
+Location: modules/gateways/razorpay/
+Callback: modules/gateways/callback/razorpay.php
+
+FEATURES:
+- UPI (PhonePe, Google Pay, Paytm, BHIM)
+- Credit/Debit Cards (Visa, Mastercard, RuPay, Amex)
+- Net Banking (100+ Indian banks)
+- Wallets (Paytm, Mobikwik, FreeCharge, Ola Money)
+- EMI options
+- International cards (optional)
+- Webhook support
+- Refunds and manual capture
+
+INSTALLATION:
+1. Get your API keys from https://dashboard.razorpay.com/
+2. Configure in admin panel:
+   - Key ID (rzp_live_... or rzp_test_...)
+   - Key Secret
+   - Webhook Secret
+   - Test Mode
+   - Payment Methods (card,upi,netbanking,wallet,emi)
+
+WEBHOOK SETUP:
+URL: https://yourdomain.com/modules/gateways/callback/razorpay.php
+Configure in Razorpay Dashboard > Settings > Webhooks
+Active Events:
+- payment.captured
+- payment.failed
+- payment.authorized
+- refund.created
+- refund.processed
+- dispute.created
+
+------------------------------------
+TESTING
+------------------------------------
+
+STRIPE TEST CARDS:
+- Success: 4242 4242 4242 4242
+- 3D Secure: 4000 0027 6000 3184
+- Decline: 4000 0000 0000 0002
+
+PAYPAL SANDBOX:
+- Use sandbox.paypal.com for test accounts
+- Create buyer and seller accounts
+
+PADDLE SANDBOX:
+- Use sandbox environment
+- Test cards provided in Paddle documentation
+
+RAZORPAY TEST MODE:
+- UPI: success@razorpay
+- Card: 4111 1111 1111 1111 (any CVV, future date)
+- Net Banking: Select any bank, use success@razorpay
+
+------------------------------------
+SECURITY NOTES
+------------------------------------
+
+1. PCI DSS COMPLIANCE:
+   - All gateways handle card data externally
+   - No card numbers stored in your database
+   - Use HTTPS for all payment pages
+
+2. WEBHOOK SECURITY:
+   - Always configure webhook secrets
+   - All callbacks verify signatures
+   - Log all transactions for audit
+
+3. API KEYS:
+   - Store in encrypted database or environment variables
+   - Never commit to version control
+   - Rotate keys periodically
+
+4. TEST MODE:
+   - Always test in sandbox/test mode first
+   - Verify all payment flows
+   - Test refunds and disputes
+
+------------------------------------
+SUPPORT
+------------------------------------
+
+Gateway Documentation:
+- Stripe: https://stripe.com/docs/api
+- PayPal: https://developer.paypal.com/docs/
+- Paddle: https://developer.paddle.com/
+- Razorpay: https://razorpay.com/docs/
+
+For issues with the gateway modules, check:
+1. Transaction logs in admin panel
+2. Gateway webhook logs
+3. Server error logs
+4. API credentials validity
+
+------------------------------------

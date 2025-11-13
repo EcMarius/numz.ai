@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 use Wave\Traits\HasProfileKeyValues;
 use Wave\User as WaveUser;
 
 class User extends WaveUser implements MustVerifyEmail
 {
-    use HasApiTokens, HasProfileKeyValues, Notifiable;
+    use HasApiTokens, HasProfileKeyValues, Notifiable, HasRoles;
 
     public $guard_name = 'web';
 
@@ -346,5 +347,37 @@ class User extends WaveUser implements MustVerifyEmail
             // Default to false on error to prevent locking out users
             return false;
         }
+    }
+
+    /**
+     * Get all activity logs for this user
+     */
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(\App\Models\ActivityLog::class);
+    }
+
+    /**
+     * Get all audit logs for this user
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(\App\Models\AuditLog::class);
+    }
+
+    /**
+     * Get all consent logs for this user
+     */
+    public function consentLogs(): HasMany
+    {
+        return $this->hasMany(\App\Models\ConsentLog::class);
+    }
+
+    /**
+     * Get the user's active sessions
+     */
+    public function sessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\Illuminate\Support\Facades\DB::table('sessions')->getModel());
     }
 }

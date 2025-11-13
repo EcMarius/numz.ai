@@ -1,0 +1,87 @@
+OVH MODULE SETUP INSTRUCTIONS
+===============================
+
+Quick Setup Steps:
+------------------
+
+1. GET OVH API CREDENTIALS
+   - Visit: https://eu.api.ovh.com/createApp/ (or your region)
+   - Create application and get Application Key + Application Secret
+   - Generate Consumer Key with permissions (see config.example.php)
+
+2. INSTALL DATABASE TABLES
+   - Run: php modules/servers/ovh/install.php
+   - Or install via WHMCS addon modules interface
+
+3. CONFIGURE WHMCS PRODUCT
+   - Setup > Products/Services > Create Product
+   - Module Settings tab:
+     * Module: OVH Servers
+     * Endpoint: ovh-eu / ovh-ca / ovh-us
+     * Application Key: [your key]
+     * Application Secret: [your secret]
+     * Consumer Key: [your consumer key]
+     * Service Type: dedicated / vps / cloud
+     * Service Name/ID: [OVH service identifier]
+     * Configure other options as needed
+
+4. TEST CONNECTION
+   - Go to product configuration
+   - Click "Test Connection" button
+   - Should return success with account details
+
+5. SETUP CRON (OPTIONAL)
+   - Add to system cron: php modules/servers/ovh/cron.php
+   - Or access via: modules/servers/ovh/cron.php?token=your_token
+   - Recommended: every 6 hours
+
+6. ENABLE HOOKS (OPTIONAL)
+   - Hooks are auto-loaded by WHMCS
+   - Check System Settings > Module Settings > OVH
+
+Required OVH API Permissions:
+-----------------------------
+GET/POST/PUT/DELETE on:
+- /dedicated/server/*
+- /vps/*
+- /cloud/project/*
+- /ip/*
+- /me
+
+File Structure:
+---------------
+ovh.php                 - Main module (39KB, ~1300 lines)
+hooks.php              - WHMCS integration hooks (9.6KB)
+install.php            - Database schema (11KB)
+cron.php               - Scheduled tasks (15KB)
+webhook.php            - OVH webhook handler (8.5KB)
+config.example.php     - Configuration reference (6.9KB)
+lib/OVHHelper.php      - Utility functions (13KB)
+templates/clientarea.tpl - Client interface (10KB)
+
+Total: ~113KB, 3600+ lines of code
+
+Features Included:
+------------------
+✓ OVH API v6 integration with OAuth
+✓ Multi-endpoint support (EU, CA, US)
+✓ Dedicated Servers, VPS, Public Cloud
+✓ Server provisioning & OS installation
+✓ Reboot, Reinstall, Rescue mode
+✓ IPMI/KVM access
+✓ Monitoring & alerts
+✓ Backup management
+✓ IP management
+✓ Bandwidth tracking
+✓ Task tracking
+✓ Webhook support
+✓ Auto-sync cron jobs
+✓ Client area interface
+✓ Admin custom buttons
+✓ Full error handling & logging
+
+Support:
+--------
+- OVH API Docs: https://api.ovh.com/
+- OVH Console: https://api.ovh.com/console/
+- Module logs in: WHMCS Activity Log

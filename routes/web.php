@@ -469,3 +469,6 @@ Route::prefix('api/whmcs')->name('whmcs.api.')->group(function () {
         return response()->json($compat->getClientDomains($request->input('clientid')));
     });
 });
+
+// API Documentation
+Route::get('/api/docs', [\App\Http\Controllers\ApiDocumentationController::class, 'index'])->name('api.docs');

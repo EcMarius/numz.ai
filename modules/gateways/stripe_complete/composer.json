@@ -1,0 +1,17 @@
+{
+    "name": "numz/stripe-complete-gateway",
+    "description": "Stripe Complete Payment Gateway for WHMCS-compatible billing system",
+    "type": "library",
+    "require": {
+        "php": ">=8.0",
+        "stripe/stripe-php": "^13.0"
+    },
+    "autoload": {
+        "files": [
+            "stripe_complete.php"
+        ]
+    },
+    "config": {
+        "vendor-dir": "stripe-php"
+    }
+}

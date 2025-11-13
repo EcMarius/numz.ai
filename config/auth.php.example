@@ -1,0 +1,37 @@
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Two-Factor Authentication Configuration (Example)
+|--------------------------------------------------------------------------
+|
+| Add these configurations to your config/auth.php file or create a
+| separate config/2fa.php file.
+|
+*/
+
+return [
+    '2fa' => [
+        // Enable/disable 2FA enforcement globally
+        'enforce' => env('2FA_ENFORCE', false),
+
+        // Enforce 2FA for specific roles
+        'enforce_for_roles' => [
+            'super-admin',
+            'admin',
+        ],
+
+        // 2FA methods available
+        'methods' => [
+            'app' => true,      // TOTP via Google Authenticator, Authy, etc.
+            'sms' => false,     // SMS via Twilio (requires Twilio configuration)
+            'email' => true,    // Email verification codes
+        ],
+
+        // Recovery codes configuration
+        'recovery_codes' => [
+            'count' => 8,
+            'length' => 12,
+        ],
+    ],
+];
