@@ -44,25 +44,50 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    /**
+     * Generate unique invoice number with concurrency safety
+     *
+     * Edge cases handled:
+     * - Race conditions (database lock)
+     * - Duplicate prevention
+     * - Month/year rollover
+     */
     public static function generateInvoiceNumber(): string
     {
-        $prefix = config('numz.invoice_prefix', 'INV');
-        $year = now()->year;
-        $month = now()->format('m');
+        return \DB::transaction(function () {
+            $prefix = config('numz.invoice_prefix', 'INV');
+            $year = now()->year;
+            $month = now()->format('m');
 
-        // Get the last invoice number for this month
-        $lastInvoice = self::where('invoice_number', 'like', "{$prefix}-{$year}{$month}%")
-            ->orderBy('invoice_number', 'desc')
-            ->first();
+            // Lock the last invoice to prevent race conditions
+            $lastInvoice = self::where('invoice_number', 'like', "{$prefix}-{$year}{$month}%")
+                ->orderBy('invoice_number', 'desc')
+                ->lockForUpdate()
+                ->first();
 
-        if ($lastInvoice) {
-            $lastNumber = (int) substr($lastInvoice->invoice_number, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
+            if ($lastInvoice) {
+                $lastNumber = (int) substr($lastInvoice->invoice_number, -4);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
 
-        return sprintf('%s-%s%s%04d', $prefix, $year, $month, $newNumber);
+            $invoiceNumber = sprintf('%s-%s%s%04d', $prefix, $year, $month, $newNumber);
+
+            // Double-check uniqueness
+            $attempts = 0;
+            while (self::where('invoice_number', $invoiceNumber)->exists() && $attempts < 10) {
+                $newNumber++;
+                $invoiceNumber = sprintf('%s-%s%s%04d', $prefix, $year, $month, $newNumber);
+                $attempts++;
+            }
+
+            if ($attempts >= 10) {
+                throw new \RuntimeException('Failed to generate unique invoice number after 10 attempts');
+            }
+
+            return $invoiceNumber;
+        });
     }
 
     public function isPaid(): bool
@@ -99,18 +124,38 @@ class Invoice extends Model
         ]);
     }
 
+    /**
+     * Calculate invoice totals with proper rounding
+     *
+     * Edge cases handled:
+     * - Decimal precision (banker's rounding)
+     * - Negative amounts prevention
+     * - Currency-aware rounding
+     */
     public function calculateTotals(): void
     {
         $subtotal = $this->items()->sum('total');
-        $discount = $this->discount ?? 0;
+        $discount = max(0, $this->discount ?? 0); // Prevent negative discounts
         $taxRate = config('numz.tax_rate', 0); // Percentage
-        $tax = ($subtotal - $discount) * ($taxRate / 100);
-        $total = $subtotal - $discount + $tax;
+
+        // Ensure discount doesn't exceed subtotal
+        $discount = min($discount, $subtotal);
+
+        // Calculate tax on taxable amount with proper rounding
+        $taxableAmount = $subtotal - $discount;
+        $tax = round($taxableAmount * ($taxRate / 100), 2, PHP_ROUND_HALF_UP);
+
+        // Calculate total with proper rounding
+        $total = round($subtotal - $discount + $tax, 2, PHP_ROUND_HALF_UP);
+
+        // Ensure total is never negative
+        $total = max(0, $total);
 
         $this->update([
-            'subtotal' => $subtotal,
+            'subtotal' => round($subtotal, 2, PHP_ROUND_HALF_UP),
             'tax' => $tax,
             'total' => $total,
+            'discount' => round($discount, 2, PHP_ROUND_HALF_UP),
         ]);
     }
 

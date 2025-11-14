@@ -3,97 +3,88 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | NUMZ.AI - The First AI Hosting Billing Software
+    | Invoice Settings
     |--------------------------------------------------------------------------
     */
-
-    'name' => 'NUMZ.AI',
-    'version' => '1.0.0',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Payment Gateways
-    |--------------------------------------------------------------------------
-    */
-    'gateways' => [
-        'stripe' => [
-            'enabled' => env('STRIPE_ENABLED', true),
-            'secret_key' => env('STRIPE_SECRET_KEY'),
-            'publishable_key' => env('STRIPE_PUBLISHABLE_KEY'),
-            'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        ],
-        'paypal' => [
-            'enabled' => env('PAYPAL_ENABLED', true),
-            'client_id' => env('PAYPAL_CLIENT_ID'),
-            'secret' => env('PAYPAL_SECRET'),
-            'sandbox' => env('PAYPAL_SANDBOX', true),
-        ],
-        'paysafecard' => [
-            'enabled' => env('PAYSAFECARD_ENABLED', false),
-            'api_key' => env('PAYSAFECARD_API_KEY'),
-            'test_mode' => env('PAYSAFECARD_TEST_MODE', true),
-        ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Domain Registrars
-    |--------------------------------------------------------------------------
-    */
-    'registrars' => [
-        'domainnameapi' => [
-            'enabled' => env('DOMAINNAMEAPI_ENABLED', true),
-            'username' => env('DOMAINNAMEAPI_USERNAME'),
-            'password' => env('DOMAINNAMEAPI_PASSWORD'),
-            'test_mode' => env('DOMAINNAMEAPI_TEST_MODE', true),
-        ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Hosting Provisioning
-    |--------------------------------------------------------------------------
-    */
-    'provisioning' => [
-        'oneprovider' => [
-            'enabled' => env('ONEPROVIDER_ENABLED', false),
-            'api_key' => env('ONEPROVIDER_API_KEY'),
-        ],
-        'cpanel' => [
-            'enabled' => env('CPANEL_ENABLED', true),
-        ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Integrations
-    |--------------------------------------------------------------------------
-    */
-    'integrations' => [
-        'tawkto' => [
-            'enabled' => env('TAWKTO_ENABLED', false),
-            'property_id' => env('TAWKTO_PROPERTY_ID'),
-            'widget_id' => env('TAWKTO_WIDGET_ID'),
-        ],
-    ],
+    'invoice_prefix' => env('INVOICE_PREFIX', 'INV'),
+    'currency' => env('DEFAULT_CURRENCY', 'USD'),
+    'tax_rate' => env('DEFAULT_TAX_RATE', 0),
 
     /*
     |--------------------------------------------------------------------------
     | Billing Settings
     |--------------------------------------------------------------------------
     */
-    'billing' => [
-        'currency' => env('NUMZ_CURRENCY', 'USD'),
-        'invoice_prefix' => env('NUMZ_INVOICE_PREFIX', 'INV'),
-        'due_days' => env('NUMZ_INVOICE_DUE_DAYS', 14),
-        'auto_suspend_days' => env('NUMZ_AUTO_SUSPEND_DAYS', 7),
-        'auto_terminate_days' => env('NUMZ_AUTO_TERMINATE_DAYS', 30),
+    'grace_period_days' => env('GRACE_PERIOD_DAYS', 7),
+    'termination_days' => env('TERMINATION_DAYS', 30),
+    'invoice_due_days' => env('INVOICE_DUE_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Domain Registrar Settings
+    |--------------------------------------------------------------------------
+    */
+    'domain_registrar' => env('DOMAIN_REGISTRAR', 'domainnameapi'),
+
+    'registrars' => [
+        'domainnameapi' => [
+            'api_key' => env('DOMAINNAMEAPI_KEY'),
+            'api_url' => env('DOMAINNAMEAPI_URL', 'https://api.domainnameapi.com/v1'),
+        ],
+        'namesilo' => [
+            'api_key' => env('NAMESILO_API_KEY'),
+            'api_url' => env('NAMESILO_API_URL', 'https://www.namesilo.com/api'),
+        ],
+        'namecheap' => [
+            'api_key' => env('NAMECHEAP_API_KEY'),
+            'api_user' => env('NAMECHEAP_API_USER'),
+            'api_url' => env('NAMECHEAP_API_URL', 'https://api.namecheap.com/xml.response'),
+        ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | WHMCS Compatibility
+    | Audit Logging
     |--------------------------------------------------------------------------
     */
-    'whmcs_compatibility' => env('NUMZ_WHMCS_COMPAT', true),
+    'audit_enabled' => env('AUDIT_LOGGING_ENABLED', true),
+    'audit_retention_days' => env('AUDIT_RETENTION_DAYS', 365),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Email Settings
+    |--------------------------------------------------------------------------
+    */
+    'send_invoice_emails' => env('SEND_INVOICE_EMAILS', true),
+    'send_renewal_reminders' => env('SEND_RENEWAL_REMINDERS', true),
+    'renewal_reminder_days' => [60, 30, 14, 7, 3, 1],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provisioning Settings
+    |--------------------------------------------------------------------------
+    */
+    'auto_provision' => env('AUTO_PROVISION_SERVICES', true),
+    'provision_retry_attempts' => env('PROVISION_RETRY_ATTEMPTS', 3),
+    'provision_retry_delay' => env('PROVISION_RETRY_DELAY', 5), // minutes
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security Settings
+    |--------------------------------------------------------------------------
+    */
+    'encrypt_passwords' => env('ENCRYPT_SERVICE_PASSWORDS', true),
+    'password_min_length' => env('PASSWORD_MIN_LENGTH', 12),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Feature Flags
+    |--------------------------------------------------------------------------
+    */
+    'features' => [
+        'webhooks' => env('FEATURE_WEBHOOKS', true),
+        'marketplace' => env('FEATURE_MARKETPLACE', true),
+        'growth_hacking' => env('FEATURE_GROWTH_HACKING', true),
+        'api_access' => env('FEATURE_API_ACCESS', true),
+    ],
 ];

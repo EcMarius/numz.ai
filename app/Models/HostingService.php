@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HostingService extends Model
@@ -39,8 +40,25 @@ class HostingService extends Model
         return $this->belongsTo(HostingServer::class, 'hosting_server_id');
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class, 'item_id')
+            ->where('item_type', 'service')
+            ->with('invoice');
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function hasUnpaidInvoices(): bool
+    {
+        return InvoiceItem::where('item_type', 'service')
+            ->where('item_id', $this->id)
+            ->whereHas('invoice', function ($query) {
+                $query->where('status', 'unpaid');
+            })
+            ->exists();
     }
 }

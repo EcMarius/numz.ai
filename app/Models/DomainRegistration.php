@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DomainRegistration extends Model
@@ -29,6 +30,13 @@ class DomainRegistration extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class, 'item_id')
+            ->where('item_type', 'domain')
+            ->with('invoice');
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
@@ -37,5 +45,15 @@ class DomainRegistration extends Model
     public function isExpired(): bool
     {
         return $this->expiry_date < now();
+    }
+
+    public function hasUnpaidInvoices(): bool
+    {
+        return InvoiceItem::where('item_type', 'domain')
+            ->where('item_id', $this->id)
+            ->whereHas('invoice', function ($query) {
+                $query->where('status', 'unpaid');
+            })
+            ->exists();
     }
 }

@@ -70,34 +70,73 @@ class InvoiceService
 
     /**
      * Generate invoices for all services due for renewal
+     *
+     * Edge cases handled:
+     * - Timezone consistency (all dates in UTC)
+     * - Concurrency (database locks)
+     * - Duplicate prevention
+     * - Transaction safety
      */
     public function generateRenewalInvoices(): array
     {
         $invoices = [];
 
-        // Services due for renewal
-        $services = HostingService::where('status', 'active')
-            ->where('next_due_date', '<=', now())
-            ->whereDoesntHave('invoices', function ($query) {
-                $query->where('status', 'unpaid')
-                    ->where('due_date', '>=', now()->subDays(30));
-            })
-            ->get();
+        // Use database transaction for consistency
+        \DB::transaction(function () use (&$invoices) {
+            // Services due for renewal - lockForUpdate prevents race conditions
+            $services = HostingService::where('status', 'active')
+                ->where('next_due_date', '<=', now()->endOfDay())
+                ->lockForUpdate()
+                ->get();
 
-        foreach ($services as $service) {
-            $invoices[] = $this->generateServiceInvoice($service);
-        }
+            foreach ($services as $service) {
+                // Check if invoice already exists for this renewal period
+                $existingInvoice = Invoice::where('user_id', $service->user_id)
+                    ->where('status', 'unpaid')
+                    ->whereHas('items', function ($query) use ($service) {
+                        $query->where('item_type', 'service')
+                            ->where('item_id', $service->id);
+                    })
+                    ->where('due_date', '>=', now()->subDays(30))
+                    ->exists();
 
-        // Domains due for renewal (30 days before expiry)
-        $domains = DomainRegistration::where('status', 'active')
-            ->where('auto_renew', true)
-            ->where('expiry_date', '<=', now()->addDays(30))
-            ->where('expiry_date', '>', now())
-            ->get();
+                if (!$existingInvoice) {
+                    try {
+                        $invoices[] = $this->generateServiceInvoice($service);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to generate invoice for service {$service->id}: {$e->getMessage()}");
+                    }
+                }
+            }
 
-        foreach ($domains as $domain) {
-            $invoices[] = $this->generateDomainInvoice($domain);
-        }
+            // Domains due for renewal (30 days before expiry)
+            $domains = DomainRegistration::where('status', 'active')
+                ->where('auto_renew', true)
+                ->whereDate('expiry_date', '<=', now()->addDays(30)->endOfDay())
+                ->whereDate('expiry_date', '>', now()->startOfDay())
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($domains as $domain) {
+                // Check for existing unpaid invoice
+                $existingInvoice = Invoice::where('user_id', $domain->user_id)
+                    ->where('status', 'unpaid')
+                    ->whereHas('items', function ($query) use ($domain) {
+                        $query->where('item_type', 'domain')
+                            ->where('item_id', $domain->id);
+                    })
+                    ->where('created_at', '>=', now()->subDays(60))
+                    ->exists();
+
+                if (!$existingInvoice) {
+                    try {
+                        $invoices[] = $this->generateDomainInvoice($domain);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to generate invoice for domain {$domain->id}: {$e->getMessage()}");
+                    }
+                }
+            }
+        });
 
         return $invoices;
     }

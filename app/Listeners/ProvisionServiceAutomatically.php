@@ -4,13 +4,27 @@ namespace App\Listeners;
 
 use App\Events\ServiceCreated;
 use App\Models\HostingService;
+use App\Numz\Services\WebhookService;
 use Illuminate\Support\Facades\Log;
 
 class ProvisionServiceAutomatically
 {
+    public function __construct(
+        protected WebhookService $webhookService
+    ) {}
+
     public function handle(ServiceCreated $event): void
     {
         $service = $event->service;
+
+        // Trigger webhook for service.created
+        $this->webhookService->trigger('service.created', [
+            'service_id' => $service->id,
+            'domain' => $service->domain,
+            'user_id' => $service->user_id,
+            'product' => $service->product->name,
+            'status' => $service->status,
+        ]);
 
         // Only provision if service is in pending status and has been paid
         if ($service->status !== 'pending') {
@@ -71,6 +85,15 @@ class ProvisionServiceAutomatically
 
                 // Send activation email
                 \Mail::to($service->user->email)->send(new \App\Mail\ServiceActivated($service));
+
+                // Trigger webhook for service.activated
+                $this->webhookService->trigger('service.activated', [
+                    'service_id' => $service->id,
+                    'domain' => $service->domain,
+                    'username' => $result['username'] ?? $service->username,
+                    'user_id' => $service->user_id,
+                    'activated_at' => now()->toIso8601String(),
+                ]);
 
                 Log::info("Service {$service->id} provisioned successfully", [
                     'server' => $server->name,
